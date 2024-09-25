@@ -9,7 +9,7 @@ from visualization.viz_spectraldata import get_spectral_statistics
 # Define start time to measure how long the script takes to complete
 start = time.time()
 
-def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', sensor_type='S2B'):   
+def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', sensor_type='S2B', atm_level='L2A'):   
     """ SAMSelect 
     Notes for users:
     - SceneID should refer to the multispectral scene and data-folder in data/sceneID/, and needs to contain the following:
@@ -34,7 +34,7 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     NOTE: If the SAMSelect output exists, the runtime will be skipped and immediately go into tables & graphs
     """
     for equation in equation_list: # Iterate over the chosen visualization options
-        samselect(sceneid, band_list, narrow_search_bands, scaling, equation, model_type, sensor_type)
+        samselect(sceneid, band_list, narrow_search_bands, scaling, equation, model_type, sensor_type, atm_level)
     
     """ Visualization & Graphs
     The first script prints the statistics for hte top-5 best scoring visualization for each visualization module available.
@@ -63,13 +63,13 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     - If using a different sensor (e.g., Landsat or PlanetScope data), modify this code or comment it out
     """
     # NDVI [B8, B4]
-    execute_ndvi(scene_id, band_list, scaling, equation='ndi', model_type=model_type, sensor_type=sensor_type)
+    execute_ndvi(scene_id, band_list, scaling, equation='ndi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
     
     # Floating Debris Index (FDI) [B8, B6, B11 + B4 (central wavelength value)]
-    execute_fdi(scene_id, l2a_bands, scaling, equation='fdi', model_type=model_type, sensor_type=sensor_type)
+    execute_fdi(scene_id, l2a_bands, scaling, equation='fdi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
     
     # Principal Component Analysis (PCA) [All available bands]
-    execute_pca(scene_id, l2a_bands, scaling, equation='pca', model_type=model_type, sensor_type=sensor_type)
+    execute_pca(scene_id, l2a_bands, scaling, equation='pca', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
 
 # Define Sentinel-2 spectral bands
 l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
@@ -90,6 +90,7 @@ samselect_wrapper(sceneid= scene_id,
                     scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
                     equation_list= ['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
                     model_type= 'vit_b', #=> SAM encoder
-                    sensor_type= 'S2B') #=> Sentinel-2 satellite
+                    sensor_type= 'S2B', #=> Sentinel-2 satellite
+                    atm_level='L2A') #=> Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R) are supported
 
 print(f"Script finished in {round(time.time() - start, 4)} seconds")

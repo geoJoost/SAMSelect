@@ -5,9 +5,6 @@ __pycache__/
 
 # Ignore the top-level directories
 /data/
-/models/
-/outputs/
-#/reports/
 
 # C extensions
 *.so

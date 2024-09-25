@@ -31,7 +31,7 @@ def load_scenedata(sceneid):
 def create_reference_masks(data_folder, tif_files):
     # Read in the polygon shapefile with annotations
     shapefile_path = glob.glob(os.path.join(data_folder, "*qualitative*.shp"))[0]
-    assert shapefile_path, "No shapefile containing 'qualitative' found in the data folder. Please use this naming convention for your annotations."
+    assert shapefile_path, "No shapefile containing 'qualitative' found in the data folder. Please use this naming convention for your polygon annotations."
     
     polygons = gpd.read_file(shapefile_path)
 
@@ -69,10 +69,9 @@ def create_reference_masks(data_folder, tif_files):
             print(f"Wrote annotated data: '{output_file}' to file")
 
 
-def get_band_info(sceneid, sensor_type):
-    scene, date, atm_level = sceneid.split('_')
-
+def get_band_info(sceneid, sensor_type, atm_level):
     assert sensor_type in ('S2A', 'S2B'), f"Invalid sensor_type '{sensor_type}' provided. Must be 'S2A' or 'S2B'. The given sensor is not supported yet."
+    assert atm_level in ('L1C', 'L1R', 'L2A', 'L2R'), f"Invalid atmospheric corrected product '{atm_level}. Please insert one of the following products: Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R)"
 
     # Sentinel-2A
     if sensor_type == 'S2A': 
@@ -110,10 +109,10 @@ def get_band_info(sceneid, sensor_type):
         "B12": 2185.7   # SWIR 2
     }
 
-    if atm_level == 'l2a': # Sen2Cor removes B10
+    if atm_level == 'L2A': # Sen2Cor removes B10
         del bands_dict['B10']
 
-    if atm_level == 'l2r': # ACOLITE removes B9 and B10
+    if atm_level == 'L2R': # ACOLITE removes B9 and B10
         del bands_dict['B9']
         del bands_dict['B10']
 

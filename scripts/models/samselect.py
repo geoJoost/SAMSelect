@@ -8,7 +8,7 @@ from models.helper_functions import select_top_bands
 from utils.get_band_idx import get_band_idx
 from utils.process_band_columns import process_band_columns
 
-def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', sensor_type='S2B'):
+def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', sensor_type='S2B', atm_level='L2A'):
     # Define the output file path
     output_csv = f"data/processed/{sceneid}_{equation}_{model_type}_results.csv"
     
@@ -44,7 +44,7 @@ def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_
         bands_idx = get_band_idx(band_list, band_combination, equation)
 
         # Execute SAM and obtain a dataframe of mIoU scores
-        df_interim, _ = execute_SAM(sceneid, bands_idx, scaling, equation, model_type, sensor_type)
+        df_interim, _ = execute_SAM(sceneid, bands_idx, scaling, equation, model_type, sensor_type, atm_level)
 
         # Append the current DataFrame to the combined DataFrame
         df_results = pd.concat([df_results, df_interim], ignore_index=True)

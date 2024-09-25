@@ -12,10 +12,10 @@ from utils.metrics import calculate_metrics
 # Set random seed for selecting random points, if num_points argument is given
 np.random.seed(42)
 
-def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', sensor_type='S2B'):
+def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', sensor_type='S2B', atm_level='L2A'):
     np.random.seed(42)
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, band_list, equation, sensor_type)
+    dataset = SamForMarineDebris(sceneid, band_list, equation, sensor_type, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Define Segment Anything Model

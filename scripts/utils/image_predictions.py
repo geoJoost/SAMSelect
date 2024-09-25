@@ -13,11 +13,11 @@ from utils.metrics import calculate_metrics
 torch.manual_seed(42), random.seed(42)
 
 
-def get_img(sceneid, band_list, band_combination, equation, sensor_type):
+def get_img(sceneid, band_list, band_combination, equation, sensor_type, atm_level):
     bands_idx = get_band_idx(band_list, band_combination, equation)
 
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type)
+    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Initialize a list to store images
@@ -38,14 +38,14 @@ def get_img(sceneid, band_list, band_combination, equation, sensor_type):
     return images, batch_label, batch_point_prompts, patch_ids
 
 
-def get_img_pred(sceneid, band_list, band_combination, equation, sensor_type, mask_level, mode=''):
+def get_img_pred(sceneid, band_list, band_combination, equation, sensor_type, atm_level, mask_level):
     bands_idx = get_band_idx(band_list, band_combination, equation)
 
     # Select mask level
     mask_level_map = {'level-1':0, 'level-2': 1, 'level-3': 2}
     mask_level_idx = mask_level_map[mask_level]
 
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type)
+    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Define Segment Anything Model
