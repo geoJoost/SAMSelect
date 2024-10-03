@@ -53,9 +53,9 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
 
     NOTE: Similar to the comparison scripts, band selection for NDVI and FDI are hard-coded    
     """
-    top1_combination, top1_equation = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
+    #top1_combination, top1_equation = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
 
-    plot_patches(sceneid, band_list, top1_combination, top1_equation, sensor_type, 'level-3') # Hard-coded to select mask-level 3 from the SAM-predictions
+    #plot_patches(sceneid, band_list, top1_combination, top1_equation, sensor_type, 'level-3') # Hard-coded to select mask-level 3 from the SAM-predictions
 
     """ Domain indices (marine debris)
     Notes for users:
@@ -63,30 +63,23 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     - If using a different sensor (e.g., Landsat or PlanetScope data), modify this code or comment it out
     """
     # NDVI [B8, B4]
-    execute_ndvi(scene_id, band_list, scaling, equation='ndi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_ndvi(sceneid, band_list, scaling, equation='ndi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
     
     # Floating Debris Index (FDI) [B8, B6, B11 + B4 (central wavelength value)]
-    execute_fdi(scene_id, l2a_bands, scaling, equation='fdi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_fdi(sceneid, l2a_bands, scaling, equation='fdi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
     
     # Principal Component Analysis (PCA) [All available bands]
-    execute_pca(scene_id, l2a_bands, scaling, equation='pca', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_pca(sceneid, l2a_bands, scaling, equation='pca', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
 
 # Define Sentinel-2 spectral bands
 l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
 l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]       # L2A
 l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]             # L2R
 
-# Define available scenes
-scenes_list_all = ["accra_20181031_l1c", "accra_20181031_l1r", "accra_20181031_l2r",
-                 "durban_20190424_l1c", "durban_20190424_l1r", "durban_20190424_l2r"]
-
-# TODO: Remove this code or improve
-scene_id = "durban_20190424_l2a"
-
 # Execute the SAMSelect wrapper
-samselect_wrapper(sceneid= scene_id, 
+samselect_wrapper(sceneid= "durban_20190424_l2a", # Folder in which data is stored 
                     band_list= l2a_bands, #=> Sentinel-2 L2A bands 
-                    narrow_search_bands= None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A'],
+                    narrow_search_bands= None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
                     scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
                     equation_list= ['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
                     model_type= 'vit_b', #=> SAM encoder

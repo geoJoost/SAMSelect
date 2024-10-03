@@ -6,7 +6,7 @@ from segment_anything import sam_model_registry, SamPredictor
 
 # Custom modules
 from utils.get_band_idx import get_band_idx
-from models.marinedebris_dataloader import SamForMarineDebris
+from models.dataloader import SamForMarineDebris
 from utils.feature_scaling_functions import percentile_rescale
 from utils.metrics import calculate_metrics
 

@@ -1,0 +1,19 @@
+name: samselect
+channels:
+  - pytorch
+  - nvidia 
+  - conda-forge
+  - defaults
+
+dependencies:
+  - segment-anything
+  - geopandas
+  - rasterio
+  - scikit-learn
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - pillow
+  - scikit-image
+  - scipy

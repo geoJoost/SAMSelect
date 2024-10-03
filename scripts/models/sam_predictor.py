@@ -5,12 +5,10 @@ import numpy as np
 from segment_anything import sam_model_registry, SamPredictor
 import pandas as pd
 
-from models.marinedebris_dataloader import SamForMarineDebris
+# Custom modules
+from models.dataloader import SamForMarineDebris
 from utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
 from utils.metrics import calculate_metrics
-
-# Set random seed for selecting random points, if num_points argument is given
-np.random.seed(42)
 
 def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', sensor_type='S2B', atm_level='L2A'):
     np.random.seed(42)
