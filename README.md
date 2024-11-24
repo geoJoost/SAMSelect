@@ -1,11 +1,14 @@
 # SAMSelect: An Automated Spectral Index Search using Segment Anything
-[[`paper`](google.com)][[`demo`](google.com)][[`dataset`](google.com)]
 
+<!-- let's add those when they are ready
+[[`paper`](google.com)][[`demo`](google.com)][[`dataset`](google.com)]
+-->
+
+> SAMSelect discovers three-channel visualizations from multispectral imagery where pre-specified objects are most visible. It builds on Meta's [Segment Anything Model (SAM)](https://segment-anything.com/) to rank band combinations based on segmentation accuracy in the 3-channel visualization. 
 
 ![SAMSelect](./doc/SAMSelect.png)
 
-SAMSelect is an algorithm designed to obtain salient three-channel visualizations from multispectral imagery through an automated spectral search space. Initially developed for marine debris detection in Sentinel-2 data, SAMSelect is applicable in both terrestrial and marine applications. The algorithm leverages the Segment Anything Model (SAM) to automatically identify the optimal band combinations that increase the visibility of features-of-interest. By providing domain scientists with high-quality visualizations, SAMSelect facilitates more accurate and efficient visual photo-interpretation.
-
+<!--
 If you've found SAMSelect helpful in your research, we'd love to hear about it! Your feedback helps us continue to improve the tool.
 
 **Want to share your work?** Cite us in your publications using the reference in the article.
@@ -13,6 +16,26 @@ If you've found SAMSelect helpful in your research, we'd love to hear about it! 
 **Have questions, suggestions, or encountered a bug?** Reach out to Joost van Dalen directly.
 
 **Let's collaborate and make SAMSelect even better together!**
+-->
+
+## Getting Started
+
+```
+# install samselect and its dependencies
+pip install git+ssh://git@github.com/geoJoost/SAMSelect.git
+
+# run samselect on the demo data on the data folder
+samselect --image data/accra_20181031.tif --annotations data/accra_20181031.tif
+
+# please check for more instructions on usage
+samselect --help 
+```
+To run SAMSelect on your own data, you can modify [this Google Earth Engine script](https://code.earthengine.google.com/b31594853f8b1752f7fcf79883062bf3) to 
+1. download a Sentinel-2 image
+2. annotate some of the objects that you would like to visualize better
+3. download them to your Google drive (click "run" in "Tasks" tab)
+
+## Example Visualizations
 
 ![SAMSelect visualizations](./doc/figures/samselect_patches.png)
 
@@ -95,6 +118,3 @@ In addition to SAMSelect's visualizations, three other methods are used for comp
 
 Important note:
 If using data from different sensors, you may need to adjust the associated functions in `spectral_indices.py`, as certain indices (e.g., NDVI) are hard-coded to specific band combinations, such as `['B4', 'B8']` for Sentinel-2. Ensure the correct bands are selected for your sensor type.
-
-# License
-The model is licensed under the **LICENSE**
