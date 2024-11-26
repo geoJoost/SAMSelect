@@ -84,7 +84,7 @@ This section lists the user-configurable settings for running SAMSelect in `main
 6. **sensor_type** Specifies the satellite sensor used to collect the images. Options are `S2A` (Sentinel-2A) and `S2B` (Sentinel-2B). Note: this setting is required for SSI and FDI calculations. Support for other satellites is not yet integrated.
 
 Additional notes:
-- Depending on the hardware (GPU/CPU), number of spectral bands, and the number of images, processing time can vary from one hour to several.
+- Depending on the hardware (GPU/CPU), the number of spectral bands, and the number of images, processing time can vary from one hour to several. As a rule of thumb, processing of each visualization takes about 10 seconds using a GPU and 64-74 seconds using a CPU.
 - If a previous SAMSelect output exists for the same configuration, the system will skip computation and directly move to generating tables and graphs from the cached data, reducing runtime significantly.
 
 ## Comparison Methods

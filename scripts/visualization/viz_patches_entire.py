@@ -4,16 +4,16 @@ from matplotlib.colors import ListedColormap
 import torch
 from utils.image_predictions import get_img, get_img_pred
 
-def plot_patches(sceneid, band_list, top1_combination, top1_equation, sensor_type, mask_level):
+def plot_patches(sceneid, band_list, top1_combination, top1_equation, sensor_type, atm_level, mask_level):
     # Make patches for true-colour (VIS), NDVI and FDI
     # Also load the labels and point prompts
-    images_vis, batch_label, point_prompts, patch_ids = get_img(sceneid, band_list, ['B4', 'B3', 'B2'], 'bc', sensor_type) # True-colour
-    images_ndvi = get_img(sceneid, band_list, ['B8', 'B4'], 'ndi', sensor_type)[0] # NDVI
-    images_fdi = get_img(sceneid, band_list, ["B8", "B6", "B11"], 'fdi', sensor_type)[0] # FDI
+    images_vis, batch_label, point_prompts, point_labels, patch_ids = get_img(sceneid, band_list, ['B4', 'B3', 'B2'], 'bc', sensor_type, atm_level) # True-colour
+    images_ndvi = get_img(sceneid, band_list, ['B8', 'B4'], 'ndi', sensor_type, atm_level)[0] # NDVI
+    images_fdi = get_img(sceneid, band_list, ["B8", "B6", "B11"], 'fdi', sensor_type, atm_level)[0] # FDI
 
     # Retrieve top-1 results from SAMSelect
     images_top1 = get_img(sceneid, band_list, top1_combination, top1_equation, sensor_type)[0] # RSI-top10
-    images, batch_label, point_prompts, point_labels, batch_patchid, masks_lst = get_img_pred(sceneid, band_list, top1_combination, top1_equation, sensor_type, mask_level)
+    images, batch_label, point_prompts, point_labels, batch_patchid, masks_lst = get_img_pred(sceneid, band_list, top1_combination, top1_equation, sensor_type, atm_level, mask_level)
         
     # Plot all images in a single row
     no_img = len(images_vis)

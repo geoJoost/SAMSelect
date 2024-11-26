@@ -28,14 +28,14 @@ def get_img(sceneid, band_list, band_combination, equation, sensor_type, atm_lev
         for idx in range(batch_image.shape[0]):
             # Unpack individual items
             image, label, point_prompts, point_labels, patchid = batch_image[idx], batch_label[idx], batch_point_prompts[idx], batch_point_labels[idx],  batch_patchid[idx]
-
-            # Scale image
+            
+            # Rescale the image into RGB range [0, 255]
             image_scaled = percentile_rescale(image, [1, 99])
 
             # Append the scaled image to the list
             images.append(image_scaled), patch_ids.append(patchid)
         
-    return images, batch_label, batch_point_prompts, patch_ids
+    return images, batch_label, batch_point_prompts, batch_point_labels, patch_ids
 
 
 def get_img_pred(sceneid, band_list, band_combination, equation, sensor_type, atm_level, mask_level):

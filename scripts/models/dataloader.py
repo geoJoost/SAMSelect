@@ -181,6 +181,7 @@ class SamForMarineDebris(Dataset):
         # Check if the given vizualization method is valid
         assert equation in equation_functions, f"Invalid visualization module selected: {equation}"
         image = equation_functions[equation][0](*equation_functions[equation][1])
+        image = image.astype(np.float32) # To prevent issues with scaling later on, convert integers into floats
 
         # Load other variables
         label = transforms.PILToTensor()(Image.open(label_path))

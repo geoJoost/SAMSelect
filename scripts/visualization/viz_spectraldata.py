@@ -123,12 +123,16 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
 
     plt.tight_layout()
     ax.set_rasterized(True)
-    # Saving
-    os.makedirs("doc/figures", exist_ok=True)  
-    plt.savefig(f'doc/figures/{sceneid}_band_frequency.png', dpi=600) # PNG
-    #plt.savefig('reports/figures/band_frequency.pdf')          # PDF
     
+    # Saving
+    os.makedirs("doc/figures", exist_ok=True)
+    output_path = f'doc/figures/{sceneid}_band_frequency'
+    plt.savefig(f'{output_path}.png', dpi=600) # PNG
+    plt.savefig(f'{output_path}.pdf')          # PDF
+    plt.show()
     plt.close()
+    
+    print(f"Top-5 most frequently selected spectral bands saved in '{output_path}")
 
     """ Retrieve top-1 result to use in function plot_patches() """
     # Get the visualization with the maximum mIoU score

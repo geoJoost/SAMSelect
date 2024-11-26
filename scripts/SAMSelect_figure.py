@@ -57,9 +57,9 @@ def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices
             axes[4, start_col + i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
 
     # Text for row labels
-    rows = ['VIS', r'RSI$_{top10}$', 'NDVI', 'FDI', r'NDI$_{B2, B8}$']
+    rows = ['VIS', r'FCC$_{index}$', 'NDVI', 'FDI', r'NDI$_{B2, B8}$']
     for ax, row in zip(axes[:,0], rows):
-        ax.set_ylabel(row, rotation=0, horizontalalignment='right', fontsize=10)
+        ax.set_ylabel(row, rotation=90, fontsize=10)#, horizontalalignment='right', fontsize=10)
 
     # Titles for scenes
     scene_titles = ['Accra', 'Durban', 'PLP']
@@ -67,12 +67,12 @@ def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices
         axes[0, i * no_img_per_scene].set_title(title, fontsize=10)  # Set title for each column
 
     # Reduce white space between columns and rows
-    #plt.subplots_adjust(wspace=0.01, hspace=0.01)
-    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.0, hspace=0.0)
+    #plt.tight_layout()
 
     # Save
-    plt.savefig(f"doc/figures/samselect_patches.png", dpi=600, transparent=False)
-    plt.savefig(f'doc/figures/samselect_patches.pdf') 
+    plt.savefig(f"doc/figures/samselect_patches.png", dpi=600, transparent=False, bbox_inches='tight')
+    plt.savefig(f'doc/figures/samselect_patches.pdf', bbox_inches='tight') 
     plt.close()
     
     print(f"Finished printing combined plot.")
