@@ -7,7 +7,7 @@ def main():
         "-i", "--image", type=str, help="Input Sentinel-2 image", required=True
     )
     parser.add_argument(
-        "-a", "--annotations", type=str, help="Shapefile with object annotations in the Sentinel-2 iamge", required=True
+        "-a", "--annotations", type=str, help="Shapefile with object annotations in the Sentinel-2 image", required=True
     )
 
     args = parser.parse_args()

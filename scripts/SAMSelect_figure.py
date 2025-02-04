@@ -3,7 +3,7 @@ from utils.image_predictions import get_img
 
 """ Stand-alone script for printing the figure used in the article """
 
-def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices, sensors, atm_level):
+def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices):
     no_scenes = len(sceneids)
     no_img_per_scene = len(patch_indices[0])  # Number of columns per scene, based on patch_indices
     no_rows = 5  # Number of rows
@@ -13,14 +13,14 @@ def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices
     plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
     fig, axes = plt.subplots(no_rows, total_columns, figsize=(3.5, 4.5))
 
-    for scene_index, (sceneid, band_list, top1_combination, sensor_type, indices) in enumerate(zip(sceneids, band_lists, top1_combinations, sensors, patch_indices)):
+    for scene_index, (sceneid, band_list, top1_combination, indices) in enumerate(zip(sceneids, band_lists, top1_combinations, patch_indices)):
         # Load optical data + labels for current scene
-        images_vis, batch_label, point_prompts, patch_ids = get_img(sceneid, band_list, ['B4', 'B3', 'B2'], 'bc', sensor_type, atm_level) # True-colour
-        images_ndvi = get_img(sceneid, band_list, ['B8', 'B4'], 'ndi', sensor_type, atm_level)[0] # NDVI
-        images_fdi = get_img(sceneid, band_list, ["B8", "B6", "B11"], 'fdi', sensor_type, atm_level)[0] # FDI
+        images_vis, batch_label, point_prompts, point_labels, patch_ids = get_img(sceneid, band_list, ['B4', 'B3', 'B2'], 'bc') # True-colour
+        images_ndvi = get_img(sceneid, band_list, ['B8', 'B4'], 'ndi')[0] # NDVI
+        images_fdi = get_img(sceneid, band_list, ["B8", "B6", "B11"], 'fdi')[0] # FDI
         
-        images_topndi = get_img(sceneid, band_list, ['B2', 'B8'], 'ndi', sensor_type, atm_level)[0]  # New NDI using B2 and B8
-        images_top1 = get_img(sceneid, band_list, top1_combination, 'top', sensor_type, atm_level)[0] # Best combination of NDI & SSI (RSI-top10)
+        images_topndi = get_img(sceneid, band_list, ['B2', 'B8'], 'ndi')[0]  # New NDI using B2 and B8
+        images_top1 = get_img(sceneid, band_list, top1_combination, 'top')[0] # Best combination of NDI & SSI (RSI-top10)
         
         start_col = scene_index * no_img_per_scene
 
@@ -86,12 +86,10 @@ top1_combinations = [[['B2', 'B8'], ['B1', 'B8', 'B11'], ['B2', 'B8', 'B11']],
                     [['B2', 'B8'], ['B1', 'B8A'], ['B3', 'B8']],
                     [['B2', 'B8'], ['B1', 'B8A'], ['B3', 'B8'],]] # Top-1 result of Durban selected for PLP2021
 
-sensors = ['S2A', 'S2B', 'S2A']
-
 patch_indices = [
     [0], # Representative debris patch in Accra
     [2], # Representative debris patch in Durban
     [0]  # PLP2021 image acquired on 2021-06-21
 ]
 
-plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices, sensors, 'L2A')
+plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices)

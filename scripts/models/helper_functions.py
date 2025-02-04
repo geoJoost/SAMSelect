@@ -69,44 +69,25 @@ def create_reference_masks(data_folder, tif_files):
             print(f"Wrote annotated data: '{output_file}' to file")
 
 
-def get_band_info(sceneid, sensor_type, atm_level):
-    assert sensor_type in ('S2A', 'S2B'), f"Invalid sensor_type '{sensor_type}' provided. Must be 'S2A' or 'S2B'. The given sensor is not supported yet."
-    assert atm_level in ('L1C', 'L1R', 'L2A', 'L2R'), f"Invalid atmospheric corrected product '{atm_level}. Please insert one of the following products: Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R)"
+def get_band_info(atm_level):
+    assert atm_level in ('L1', 'L2A', 'L2R'), f"Invalid atmospheric corrected product '{atm_level}. Please insert one of the following products: Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R)"
 
-    # Sentinel-2A
-    if sensor_type == 'S2A': 
-        bands_dict = {
-        "B1": 442.7,    # Coastal Aerosol
-        "B2": 492.4,    # Blue
-        "B3": 559.8,    # Green
-        "B4": 664.6,    # Red
-        "B5": 704.1,    # Red Edge 1
-        "B6": 740.5,    # Red Edge 2
-        "B7": 782.8,    # Red Edge 3
-        "B8": 832.8,    # NIR
-        "B8A": 864.7,   # Narrow NIR
-        "B9": 945.1,    # Water vapour
-        "B10": 1373.5,  # Cirrus
-        "B11": 1613.7,  # SWIR 1
-        "B12": 2202.4   # SWIR 2
-    }
-
-    # Sentinel-2B
-    else: 
-        bands_dict = { 
-        "B1": 442.2,    # Coastal Aerosol
-        "B2": 492.1,    # Blue
-        "B3": 559.0,    # Green
-        "B4": 664.9,    # Red
-        "B5": 703.8,    # Red Edge 1
-        "B6": 739.1,    # Red Edge 2
-        "B7": 779.7,    # Red Edge 3
-        "B8": 832.9,    # NIR
-        "B8A": 864.0,   # Narrow NIR
-        "B9": 943.2,    # Water vapour
-        "B10": 1376.9,  # Cirrus
-        "B11": 1610.4,  # SWIR 1
-        "B12": 2185.7   # SWIR 2
+    # Sentinel-2B central wavelengths (nm)
+    # Different with Sentinel-2A is negligible
+    bands_dict = { 
+    "B1": 442.2,    # Coastal Aerosol
+    "B2": 492.1,    # Blue
+    "B3": 559.0,    # Green
+    "B4": 664.9,    # Red
+    "B5": 703.8,    # Red Edge 1
+    "B6": 739.1,    # Red Edge 2
+    "B7": 779.7,    # Red Edge 3
+    "B8": 832.9,    # NIR
+    "B8A": 864.0,   # Narrow NIR
+    "B9": 943.2,    # Water vapour
+    "B10": 1376.9,  # Cirrus
+    "B11": 1610.4,  # SWIR 1
+    "B12": 2185.7   # SWIR 2
     }
 
     if atm_level == 'L2A': # Sen2Cor removes B10
@@ -119,14 +100,31 @@ def get_band_info(sceneid, sensor_type, atm_level):
     return list(bands_dict.values()) # Convert to list as bands_idx does not allow gaps in-between for missing bands
 
 def select_top_bands(sceneid, model_type, equation_list, top_number=10):
+    """
+    Selects the top-performing band combinations for the given scene and equations (Spectral Index Composite).
+
+    Args:
+        sceneid (str): The scene ID.
+        model_type (str): The ViT-model.
+        equation_list (list): List of equations to process (e.g., ['ndi', 'ssi']).
+        top_number (int): Number of top band combinations to return.
+
+    Returns:
+        list: Top-performing band combinations.
+    """
     top_combinations = pd.DataFrame()
 
     for equation in equation_list:
-        # Check if the file exists 
+        # Construct the file path 
         file_path = f"data/processed/{sceneid}_{equation}_{model_type}_results.csv"
-        assert os.path.exists(file_path), f"File '{file_path}' does not exist."
+        
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            print(f"Skipping '{equation}' as the file '{file_path}' does not exist")
+            continue
 
         # Read in the processed data
+        print(f"Processing file: {file_path}")
         df = pd.read_csv(file_path)
 
         # Convert individual bands into tuple as this is expected for 'band_searchspace'
@@ -146,3 +144,39 @@ def select_top_bands(sceneid, model_type, equation_list, top_number=10):
         top_combinations = pd.concat([top_combinations, df_top], axis=0)
     
     return top_combinations['band_combination'].tolist()
+
+def get_atmospheric_level(sceneid, band_list):
+    """
+    Determines the atmospheric correction level based on the number of bands in a .tif file.
+
+    Args:
+        sceneid (str): The scene ID corresponding to the dataset folder.
+        band_list (list): Expected list of bands for validation.
+
+    Returns:
+        str: Atmospheric correction level ('L1', 'L2A', 'L1R'), or None if bands are insufficient.
+    """
+    data_folder = os.path.join("data", sceneid)
+    
+    # Find all .tif files in the folder, read in the first file
+    tif_files = sorted(glob.glob(os.path.join(data_folder, '*.tif')))
+    
+    if not tif_files:
+        raise FileNotFoundError(f"No .tif files found in {data_folder}")
+    
+    # Open the .tif file and check the number of bands
+    with rasterio.open(tif_files[0]) as src:
+        num_bands = src.count
+        
+        # Validate band list against the number of bands
+        if len(band_list) != num_bands:
+            raise ValueError(f"Mismatch between provided band list: ({len(band_list)} bands) "
+                            f"and number of bands in the file ({num_bands} bands).")
+            
+        # Constants for atmospheric correction levels
+        ATMOSPHERIC_LEVELS = {
+            13: 'L1',
+            12: 'L2A',
+            11: 'L2R'
+        }
+        return ATMOSPHERIC_LEVELS.get(num_bands, None)

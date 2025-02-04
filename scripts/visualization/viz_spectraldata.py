@@ -137,6 +137,14 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
     """ Retrieve top-1 result to use in function plot_patches() """
     # Get the visualization with the maximum mIoU score
     best_row = df_allstats[df_allstats['miou'] == df_allstats['miou'].max()]
+        
+    # Map mask_level to a variable for next visualization function
+    LEVEL_MAPPING = {
+        'jaccard_lvl1': 'level-1',
+        'jaccard_lvl2': 'level-2',
+        'jaccard_lvl3': 'level-3'
+    }
+    top1_masklevel = LEVEL_MAPPING.get(best_row['mask_level'].iloc[0])
 
     # For use in plot_patches, we need to convert the pretty-print bands back into a proper list to give it as argument
     # For this we need to distinguish single nesting (BC, NDI, SSI) or double-nesting (RSI-top10)
@@ -153,10 +161,11 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
     # And extract the equation / visualization type
     equation_type = best_row['equation'].iloc[0]
 
-    print(f"Best visualization found by SAMSelect is: '{equation_type}' with an mIoU score of {best_row['miou'].iloc[0]}%")
-    print(f"Using bands: {top1_combination}")  
+    print(f"Best visualization found by SAMSelect is: '{equation_type}' with an mIoU score of {best_row['miou'].iloc[0]:.2f}%")
+    print(f"Using bands: {top1_combination}")
+    print(f"With SAM: {top1_masklevel}")
 
-    return top1_combination, equation_type 
+    return top1_combination, equation_type, top1_masklevel
 
 
 

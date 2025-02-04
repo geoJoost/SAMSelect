@@ -3,13 +3,13 @@ import time
 # Custom modules
 from models.spectral_indices import execute_ndvi, execute_fdi, execute_pca
 from models.samselect import samselect
-from visualization.viz_patches_entire import plot_patches
+from visualization.viz_patches import plot_patches
 from visualization.viz_spectraldata import get_spectral_statistics
 
 # Define start time to measure how long the script takes to complete
 start = time.time()
 
-def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', sensor_type='S2B', atm_level='L2A'):   
+def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', atm_level='L2A'):   
     """ SAMSelect 
     Notes for users:
     - SceneID should refer to the multispectral scene and data-folder in data/sceneID/, and needs to contain the following:
@@ -33,8 +33,8 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     NOTE: Computation can take up to 1-2 hours, depending on GPU / CPU
     NOTE: If the SAMSelect output exists, the runtime will be skipped and immediately go into tables & graphs
     """
-    for equation in equation_list: # Iterate over the chosen visualization options
-        samselect(sceneid, band_list, narrow_search_bands, scaling, equation, model_type, sensor_type, atm_level)
+    #for equation in equation_list: # Iterate over the chosen visualization options
+    #    samselect(sceneid, band_list, narrow_search_bands, scaling, equation, model_type)
     
     """ Visualization & Graphs
     The first script prints the statistics for hte top-5 best scoring visualization for each visualization module available.
@@ -53,9 +53,9 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
 
     NOTE: Similar to the comparison scripts, band selection for NDVI and FDI are hard-coded    
     """
-    #top1_combination, top1_equation = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
+    top1_combination, top1_equation, top1_masklevel = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
 
-    #plot_patches(sceneid, band_list, top1_combination, top1_equation, sensor_type, 'level-3') # Hard-coded to select mask-level 3 from the SAM-predictions
+    plot_patches(sceneid, band_list, top1_combination, top1_equation, top1_masklevel)
 
     """ Domain indices (marine debris)
     Notes for users:
@@ -63,13 +63,13 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     - If using a different sensor (e.g., Landsat or PlanetScope data), modify this code or comment it out
     """
     # NDVI [B8, B4]
-    #execute_ndvi(sceneid, band_list, scaling, equation='ndi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_ndvi(sceneid, band_list, scaling, equation='ndi', model_type=model_type)
     
     # Floating Debris Index (FDI) [B8, B6, B11 + B4 (central wavelength value)]
-    #execute_fdi(sceneid, l2a_bands, scaling, equation='fdi', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_fdi(sceneid, l2a_bands, scaling, equation='fdi', model_type=model_type)
     
     # Principal Component Analysis (PCA) [All available bands]
-    #execute_pca(sceneid, l2a_bands, scaling, equation='pca', model_type=model_type, sensor_type=sensor_type, atm_level=atm_level)
+    #execute_pca(sceneid, l2a_bands, scaling, equation='pca', model_type=model_type)
 
 # Define Sentinel-2 spectral bands
 l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
@@ -81,9 +81,7 @@ samselect_wrapper(sceneid= "durban_20190424_l2a", # Folder in which data is stor
                     band_list= l2a_bands, #=> Sentinel-2 L2A bands 
                     narrow_search_bands= None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
                     scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
-                    equation_list= ['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
-                    model_type= 'vit_b', #=> SAM encoder
-                    sensor_type= 'S2B', #=> Sentinel-2 satellite
-                    atm_level='L2A') #=> Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R) are supported
+                    equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
+                    model_type= 'vit_b') #=> SAM encoder
 
 print(f"Script finished in {round(time.time() - start, 4)} seconds")

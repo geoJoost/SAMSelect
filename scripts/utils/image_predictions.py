@@ -9,15 +9,19 @@ from utils.get_band_idx import get_band_idx
 from models.dataloader import SamForMarineDebris
 from utils.feature_scaling_functions import percentile_rescale
 from utils.metrics import calculate_metrics
+from models.helper_functions import get_atmospheric_level
 
 torch.manual_seed(42), random.seed(42)
 
 
-def get_img(sceneid, band_list, band_combination, equation, sensor_type, atm_level):
+def get_img(sceneid, band_list, band_combination, equation):
+    # Get atmospheric correction level (L1, L2A or L2R)
+    atm_level = get_atmospheric_level(sceneid, band_list)
+    
     bands_idx = get_band_idx(band_list, band_combination, equation)
 
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type, atm_level)
+    dataset = SamForMarineDebris(sceneid, bands_idx, equation, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Initialize a list to store images
@@ -38,20 +42,24 @@ def get_img(sceneid, band_list, band_combination, equation, sensor_type, atm_lev
     return images, batch_label, batch_point_prompts, batch_point_labels, patch_ids
 
 
-def get_img_pred(sceneid, band_list, band_combination, equation, sensor_type, atm_level, mask_level):
+def get_img_pred(sceneid, band_list, band_combination, equation, mask_level):
+    # Get atmospheric correction level (L1, L2A or L2R)
+    atm_level = get_atmospheric_level(sceneid, band_list)
+    
+    # Get indices of the band_combination
     bands_idx = get_band_idx(band_list, band_combination, equation)
 
     # Select mask level
     mask_level_map = {'level-1':0, 'level-2': 1, 'level-3': 2}
     mask_level_idx = mask_level_map[mask_level]
 
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, sensor_type, atm_level)
+    dataset = SamForMarineDebris(sceneid, bands_idx, equation, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Define Segment Anything Model
     sam_checkpoint = r'data/models/sam_vit_b_01ec64.pth'
     model_type = "vit_b"
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"\nDevice used: {device}")
 
     # Load Segment Anything Model

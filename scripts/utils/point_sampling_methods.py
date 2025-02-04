@@ -43,30 +43,50 @@ def sample_random_prompts(label_np, num_prompts, prompt_value):
 
     return np.array(negative_prompts)
 
-def extract_marinedebris_points(shapefile_path, input_path, label, prompt_type="positive"):
-    with rasterio.open(input_path) as src:
+def extract_manual_prompts(shapefile_path, raster_path, label, prompt_type="positive"):
+    """
+    Extracts manual prompts (positive, negative, or both) for a given raster and shapefile input.
+
+    Args:
+        shapefile_path (str): Path to the shapefile containing annotation points.
+        raster_path (str): Path to the raster file.
+        label_tensor (torch.Tensor): Tensor containing labeled raster data.
+        prompt_type (str): Type of prompts to extract - "positive", "negative", or "both". Defaults to "positive".
+
+    Returns:
+        torch.Tensor: Tensor of padded coordinate points for the prompts.
+        torch.Tensor: Tensor of padded labels for the prompts.
+    """
+    # Read raster metadata
+    with rasterio.open(raster_path) as src:
         raster_crs = src.crs             # CRS for reprojection
         raster_bbox = box(*(src.bounds)) # Bounding box for clipping
         raster_transform = src.transform # Affine transformation for reprojection into cartesian coordinates
 
-    # Read and clip points to patches extent
-    floatingobjects_pt = gpd.read_file(shapefile_path[0]).to_crs(raster_crs)
-    md_points = gpd.clip(floatingobjects_pt, raster_bbox)
+    # Load and clip the annotations to the raster extent
+    scene_prompts = gpd.read_file(shapefile_path[0]).to_crs(raster_crs)
+    point_prompts = gpd.clip(scene_prompts, raster_bbox)
 
-    # Check if the 'type' column exists. This is used for generating positive labels and filtering negative points (type == 0)
-    assert 'type' in md_points.columns, "'type' column is missing from the DataFrame. This is a requirement for filtering positive/negative prompts"
-
-    # For negative point sampling
-    label_np = label.squeeze().numpy()
-    num_positive_prompts = md_points[md_points['type'] == 1].count().iloc[0]
-    negative_prompts = sample_random_prompts(label_np, num_positive_prompts, prompt_value=0)
-
-    # Positive point sampling
-    positive_prompts = md_points.loc[md_points['type'] == 1] # Marine Debris annotations
+    # If the 'type' column is missing, assume all points are positive
+    if 'type' not in point_prompts.columns:
+        #print("'type' column is missing from the point prompts. Assuming all points are positive prompts")
+        point_prompts['type'] = 1
+    
+    # Extract positive and negative prompts based on the 'type' column
+    positive_prompts = point_prompts[point_prompts['type'] == 1]
+    label_array = label.squeeze().numpy()
+    
+    # Sample negative prompts to match the number of positive prompts
+    num_positive_prompts = len(positive_prompts)
+    negative_prompts = sample_random_prompts(label_array, num_positive_prompts, prompt_value=0)
 
     # Transform CRS into cartesian coordinates => output in rows, cols => y, x
-    positive_prompts_yx  = rasterio.transform.rowcol(raster_transform, positive_prompts['geometry'].x, positive_prompts['geometry'].y)
-    positive_prompts_xy = np.flip(np.array(positive_prompts_yx).T, axis=1) # YX => XY
+    positive_coords_rowcol = rasterio.transform.rowcol(
+        raster_transform,
+        positive_prompts['geometry'].x,
+        positive_prompts['geometry'].y
+    )
+    positive_prompts_xy = np.flip(np.array(positive_coords_rowcol).T, axis=1)  # Convert (row, col) to (x, y)
 
     # Filter points based on prompt type
     if prompt_type == "positive":
@@ -82,10 +102,10 @@ def extract_marinedebris_points(shapefile_path, input_path, label, prompt_type="
         prior_labels = np.concatenate((np.ones(len(positive_prompts_xy)), np.zeros(len(negative_prompts))))
 
     # Pad both arrays to be of equal size between patches
-    priors_padded = np.pad(priors, ((0, 50 - priors.shape[0]), (0, 0)), mode='constant', constant_values=0)
-    prior_labels_padded = np.pad(prior_labels, (0, priors_padded.shape[0] - len(prior_labels)), mode='constant', constant_values=99)
+    padded_priors = np.pad(priors, ((0, 50 - priors.shape[0]), (0, 0)), mode='constant', constant_values=0)
+    padded_labels = np.pad(prior_labels, (0, padded_priors.shape[0] - len(prior_labels)), mode='constant', constant_values=99)
 
-    return torch.tensor(priors_padded, dtype=torch.uint8), torch.tensor(prior_labels_padded, dtype=torch.uint8)
+    return torch.tensor(padded_priors, dtype=torch.uint8), torch.tensor(padded_labels, dtype=torch.uint8)
 
 def extract_all_prompts(label, min_pixel_count=10, prompt_type="positive"):
     """

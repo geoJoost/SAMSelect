@@ -10,12 +10,12 @@ from sklearn.decomposition import PCA
 import glob
 
 from models.helper_functions import load_scenedata, get_band_info
-from utils.point_sampling_methods import extract_marinedebris_points, cluster_marinedebris, \
+from utils.point_sampling_methods import extract_manual_prompts, cluster_marinedebris, \
     extract_prompts_skeleton, extract_all_prompts, extract_prompts_centroid
 
 # TODO: Documentation
 class SamForMarineDebris(Dataset):
-    def __init__(self, sceneid, band_list=[4, 3, 2], equation='bc', sensor_type='S2B', atm_level='L2A'):
+    def __init__(self, sceneid, band_list=[4, 3, 2], equation='bc', atm_level='L2A'):
         # Use load_scenedata to get the required paths
         # If no png files are found, automatic rasterization is done from a polygon file
         tif_files, png_files = load_scenedata(sceneid)
@@ -26,7 +26,6 @@ class SamForMarineDebris(Dataset):
         self.band_list = band_list
         self.equation = equation
         self.sceneid = sceneid
-        self.sensor_type = sensor_type
         self.atm_level = atm_level
 
     def __len__(self):
@@ -38,7 +37,6 @@ class SamForMarineDebris(Dataset):
         band_list = self.band_list
         equation = self.equation
         sceneid = self.sceneid
-        sensor_type = self.sensor_type
         atm_level = self.atm_level
 
         # Define the function for reading all spectral bands
@@ -75,9 +73,9 @@ class SamForMarineDebris(Dataset):
 
                 return rgb_image 
             
-        def scene_to_ssi(input_path, band_list, sceneid, sensor_type, atm_level):
+        def scene_to_ssi(input_path, band_list, atm_level):
             # Get zero-indexed list of central wavelengths
-            s2_wavelengths = get_band_info(sceneid, sensor_type, atm_level)
+            s2_wavelengths = get_band_info(atm_level)
 
             lambda1 = s2_wavelengths[band_list[0] - 1]
             lambda2 = s2_wavelengths[band_list[1] - 1]
@@ -101,14 +99,14 @@ class SamForMarineDebris(Dataset):
 
             return rgb_image
 
-        def scene_to_top(input_path, band_list, sceneid, sensor_type, atm_level):
+        def scene_to_top(input_path, band_list, atm_level):
             rgb_list = []
 
             # Unpack individual tuples and create false colour composite
             for band_combination in band_list:
                 if len(band_combination) > 2:
                     # Calculate the Spectral Shape Index
-                    ssi = scene_to_ssi(input_path, band_combination, sceneid, sensor_type, atm_level)[:, :, 0] # Extracts single SSI from shape (128, 128, 3)
+                    ssi = scene_to_ssi(input_path, band_combination, atm_level)[:, :, 0] # Extracts single SSI from shape (128, 128, 3)
                     rgb_list.append(ssi)
                 else:
                     # Calculate the Normalized Difference Index
@@ -136,13 +134,13 @@ class SamForMarineDebris(Dataset):
                 # Reshape back to original image dimensions
                 return pca_result.reshape(bands.shape[1], bands.shape[2], -1)
         
-        def scene_to_fdi(input_path, band_list, sceneid, sensor_type, atm_level):
+        def scene_to_fdi(input_path, band_list, atm_level):
             # Calculate the Floating Debris Index which is similar to the SSI equation
             # Main difference is that FDI uses four bands as it includes the central wavelength for the red band
             # Therefore, we manually implement it.
 
             # Get dictionary of all wavelengths
-            band_dict = get_band_info(sceneid, sensor_type, atm_level)
+            band_dict = get_band_info(atm_level)
 
             # Extract central wavelength corresponding to the band
             lambda_nir = band_dict[band_list[0] - 1]    # B8
@@ -172,10 +170,10 @@ class SamForMarineDebris(Dataset):
             'none':(scene_to_raw, [image_path]),                     # Read in raw Sentinel-2 scene
             'bc':  (scene_to_rgb, [image_path, band_list]),          # Band Composite
             'ndi': (scene_to_ndi, [image_path, band_list]),          # Normalized Difference Index
-            'ssi': (scene_to_ssi, [image_path, band_list, sceneid, sensor_type, atm_level]), # Spectral Shape Index
-            'top': (scene_to_top, [image_path, band_list, sceneid, sensor_type, atm_level]), # RSI-top10
+            'ssi': (scene_to_ssi, [image_path, band_list, atm_level]), # Spectral Shape Index
+            'top': (scene_to_top, [image_path, band_list, atm_level]), # RSI-top10
             'pca': (scene_to_pca, [image_path]),                     # Principal Component Analysis
-            'fdi': (scene_to_fdi, [image_path, band_list, sceneid, sensor_type, atm_level])  # Floating Debris Index
+            'fdi': (scene_to_fdi, [image_path, band_list, atm_level])  # Floating Debris Index
         }
         
         # Check if the given vizualization method is valid
@@ -194,7 +192,7 @@ class SamForMarineDebris(Dataset):
             if shapefile_path:
                 #print(f"Shapefile with point prompts found at '{shapefile_path}'")
                 # If the .shp file exists, execute the extract_marinedebris_points function.
-                 point_prompts, point_labels = extract_marinedebris_points(shapefile_path, image_path, label, prompt_type='positive')
+                 point_prompts, point_labels = extract_manual_prompts(shapefile_path, image_path, label, prompt_type='positive')
             else:
                 #print("No shapefile for point prompts found (*_pt.shp). K-means (K=10) is executed for generating point prompts")
 

@@ -10,10 +10,9 @@ from models.dataloader import SamForMarineDebris
 from utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
 from utils.metrics import calculate_metrics
 
-def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', sensor_type='S2B', atm_level='L2A'):
-    np.random.seed(42)
+def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, band_list, equation, sensor_type, atm_level)
+    dataset = SamForMarineDebris(sceneid, band_list, equation, atm_level)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
 
     # Define Segment Anything Model
@@ -24,11 +23,23 @@ def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', 
     }
     sam_checkpoint = sam_models[model_type]
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device used: {device}")
 
-    # Load Segment Anything Model
+    # Download the SAM encoder if it does not exist
+    if not os.path.exists(sam_checkpoint):
+        import requests
+        print(f"SAM encoder not found at {sam_checkpoint}. Downloading...")
+        model_dir = os.path.dirname(sam_checkpoint)
+        model_url = f"https://dl.fbaipublicfiles.com/segment_anything/{os.path.basename(sam_checkpoint)}" # Download ViT encoder from Meta AI
+        os.makedirs(model_dir, exist_ok=True)
+        response = requests.get(model_url)
+        with open(sam_checkpoint, 'wb') as f:
+            f.write(response.content)            
+    
     assert os.path.exists(sam_checkpoint), "SAM encoder not found. Please add one to 'data/models'."
+
+    # Load Segment Anything Model
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint).to(device=device)
     predictor = SamPredictor(sam)
 
