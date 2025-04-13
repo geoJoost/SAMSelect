@@ -15,65 +15,57 @@ from utils.point_sampling_methods import extract_manual_prompts, cluster_marined
 
 # TODO: Documentation
 class SamForMarineDebris(Dataset):
-    def __init__(self, sceneid, band_list=[4, 3, 2], equation='bc', atm_level='L2A'):
-        # Use load_scenedata to get the required paths
-        # If no png files are found, automatic rasterization is done from a polygon file
-        tif_files, png_files = load_scenedata(sceneid)
-
-        # Set the attributes
-        self.image_paths = tif_files
-        self.label_paths = png_files
+    def __init__(self, tif_path, polygon_path, band_list=[4, 3, 2], equation='bc', atm_level='L2A'):
+        self.patch_size = 128
         self.band_list = band_list
         self.equation = equation
-        self.sceneid = sceneid
         self.atm_level = atm_level
+        
+        # Pre-process and cache the Sentinel-2 scene into smaller patches
+        # If large polygons are used (i.e., exceeding 1280 meters), switch patch_size to appropriate size (e.g., 256px, 512px, to a maximum of 1024px)
+        self.patches, self.masks = load_scenedata(tif_path, polygon_path, self.patch_size)
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.patches)
 
     def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        label_path = self.label_paths[idx]
+        patch = self.patches[idx]
+        mask = self.masks[idx]
+        
         band_list = self.band_list
         equation = self.equation
-        sceneid = self.sceneid
         atm_level = self.atm_level
 
         # Define the function for reading all spectral bands
-        def scene_to_raw(image_path):
-            rast = rasterio.open(image_path).read()
-            return np.transpose(rast, (1, 2, 0)) # Transpose to work with Resize() in self.transform
-        
-        def scene_to_rgb(input_path, band_list):
-            # Open the Sentinel-2 raster file and convert into RGB image
-            with rasterio.open(input_path) as src:
-                # Read three bands from .tif file; Use idx [4, 3, 2] for true-colour image
-                red_band = src.read(band_list[0])
-                green_band = src.read(band_list[1])
-                blue_band = src.read(band_list[2])
+        def scene_to_raw(patch):
+            return patch
+                
+        def scene_to_rgb(patch, band_list):
+            # Extract specified bands from the tensors
+            # Use idx [4, 3, 2] to retrieve true-colour image
+            red_band = patch[band_list[0], :, :]
+            green_band = patch[band_list[1], :, :]
+            blue_band = patch[band_list[2], :, :]
 
-                # Stack the bands to create a false-color composite
-                rgb_image = np.stack([red_band, green_band, blue_band], axis=-1)
+            # Stack the bands to create a false-colour composite
+            rgb_image = torch.stack([red_band, green_band, blue_band], dim=0)
 
-            # Create a PIL Image from the array
             return rgb_image
-        
-        def scene_to_ndi(input_path, band_list):
-            # Calculate Normalized Difference Index (NDI)
-            with rasterio.open(input_path) as src:
-                # Read two bands from .tif file
-                band1 = src.read(band_list[0])
-                band2 = src.read(band_list[1])
-
-                # Calculate the Normalized Difference Index
-                ndi = (band1 - band2) / (band1 + band2)
-
-                # Stack the NDI x3 to create a grayscale image as SAM requires 3-channel input
-                rgb_image = np.stack([ndi, ndi, ndi], axis=-1)
-
-                return rgb_image 
             
-        def scene_to_ssi(input_path, band_list, atm_level):
+        def scene_to_ndi(patch, band_list):
+            # Extract the specified bands from the tensor
+            band1 = patch[band_list[0], :, :]
+            band2 = patch[band_list[1], :, :]
+
+            # Calculate the Normalized Difference Index
+            ndi = (band1 - band2) / (band1 + band2 + 1e-10)  # Add epsilon to avoid division by zero
+
+            # Stack the NDI x3 to create a grayscale image as SAM requires 3-channel input
+            rgb_image = torch.stack([ndi, ndi, ndi], dim=0)
+
+            return rgb_image
+            
+        def scene_to_ssi(patch, band_list, atm_level):
             # Get zero-indexed list of central wavelengths
             s2_wavelengths = get_band_info(atm_level)
 
@@ -81,60 +73,53 @@ class SamForMarineDebris(Dataset):
             lambda2 = s2_wavelengths[band_list[1] - 1]
             lambda3 = s2_wavelengths[band_list[2] - 1]
 
-            # Calculate Spectral Shape Index (SSI)
-            with rasterio.open(input_path) as src:
-                # Read three bands from .tif file
-                band1 = src.read(band_list[0])
-                band2 = src.read(band_list[1])
-                band3 = src.read(band_list[2])
+            # Extract the specified bands from the tensor
+            band1 = patch[band_list[0], :, :]
+            band2 = patch[band_list[1], :, :]
+            band3 = patch[band_list[2], :, :]
 
-                # Calculate prime number
-                band2_prime = band1 + (band3 - band1) * ((lambda2 - lambda1) / (lambda3 - lambda1))
+            # Calculate prime number
+            band2_prime = band1 + (band3 - band1) * ((lambda2 - lambda1) / (lambda3 - lambda1))
 
-                # Calculate SSI
-                ssi = band2 - band2_prime
+            # Calculate SSI
+            ssi = band2 - band2_prime
 
-                # Stack the SSI x3 to create a grayscale image as SAM requires 3-channel input
-                rgb_image = np.stack([ssi, ssi, ssi], axis=-1)
+            # Stack the SSI x3 to create a grayscale image as SAM requires 3-channel input
+            rgb_image = torch.stack([ssi, ssi, ssi], dim=0)
 
             return rgb_image
 
-        def scene_to_top(input_path, band_list, atm_level):
+        def scene_to_top(patch, band_list, atm_level):
             rgb_list = []
 
             # Unpack individual tuples and create false colour composite
             for band_combination in band_list:
                 if len(band_combination) > 2:
                     # Calculate the Spectral Shape Index
-                    ssi = scene_to_ssi(input_path, band_combination, atm_level)[:, :, 0] # Extracts single SSI from shape (128, 128, 3)
+                    ssi = scene_to_ssi(patch, band_combination, atm_level)[0, :, :]  # Extracts single SSI from shape (3, 128, 128)
                     rgb_list.append(ssi)
                 else:
                     # Calculate the Normalized Difference Index
-                    ndi = scene_to_ndi(input_path, band_combination)[:, :, 0] 
+                    ndi = scene_to_ndi(patch, band_combination)[0, :, :]
                     rgb_list.append(ndi)
 
-            rgb_image = np.stack(rgb_list, axis=-1)
+            rgb_image = torch.stack(rgb_list, dim=0)
             return rgb_image
         
-        def scene_to_pca(input_path):
-            with rasterio.open(input_path) as src:
-                # Read all bands
-                bands = src.read()
+        def scene_to_pca(patch):
+            # Reshape the tensor into [num_pixels, num_bands]
+            bands_reshaped = patch.permute(1, 2, 0).reshape(-1, patch.size(0))
 
-                # Reshape the array into [num_pixels, num_bands]
-                bands_reshaped = bands.transpose(1, 2, 0).reshape(-1, bands.shape[0])
+            # Perform PCA
+            pca = PCA(n_components=3)
+            pca_result = pca.fit_transform(bands_reshaped.cpu().numpy())  # Convert to numpy for PCA
 
-                # Perform PCA
-                pca = PCA(n_components=3)
-                pca_result = pca.fit_transform(bands_reshaped)
+            # Reshape back to original image dimensions
+            pca_result = torch.tensor(pca_result).reshape(patch.size(1), patch.size(2), -1).permute(2, 0, 1)
 
-                # Print statistics
-                #print(f"Relative variance explained in the principal components: {np.round(pca.explained_variance_ratio_, 2)}")
+            return pca_result
 
-                # Reshape back to original image dimensions
-                return pca_result.reshape(bands.shape[1], bands.shape[2], -1)
-        
-        def scene_to_fdi(input_path, band_list, atm_level):
+        def scene_to_fdi(patch, band_list, atm_level):
             # Calculate the Floating Debris Index which is similar to the SSI equation
             # Main difference is that FDI uses four bands as it includes the central wavelength for the red band
             # Therefore, we manually implement it.
@@ -145,35 +130,33 @@ class SamForMarineDebris(Dataset):
             # Extract central wavelength corresponding to the band
             lambda_nir = band_dict[band_list[0] - 1]    # B8
             lambda_swir1 = band_dict[band_list[2] - 1]  # B11
+            lambda_red = band_dict[4 - 1]  # Hard-coded as this is unique to FDI
 
-            lambda_red = band_dict[4 - 1] # Hard-coded as this is unique to FDI
+            # Extract the specified bands from the tensor
+            nir = patch[band_list[0], :, :]    # B8
+            red2 = patch[band_list[1], :, :]   # B6
+            swir1 = patch[band_list[2], :, :]  # B11
 
-            with rasterio.open(input_path) as src:
-                # Read three bands from .tif file
-                nir = src.read(band_list[0])    # B8
-                red2 = src.read(band_list[1])   # B6
-                swir1 = src.read(band_list[2])  # B11
+            # Calculate NIR prime
+            nir_prime = red2 + (swir1 - red2) * 10 * (lambda_nir - lambda_red) / (lambda_swir1 - lambda_red)
 
-                # Calculate NIR prime
-                nir_prime = red2 + (swir1 - red2) * 10 * (lambda_nir - lambda_red) / (lambda_swir1 - lambda_red)
+            # Calculate FDI
+            fdi = nir - nir_prime
 
-                # Calculate FDI
-                fdi = nir - nir_prime
+            # Stack the FDI x3 to create a grayscale image
+            rgb_image = torch.stack([fdi, fdi, fdi], dim=0)
 
-                # Stack the FDI x3 to create a grayscale image
-                rgb_image = np.stack([fdi, fdi, fdi], axis=-1)
-
-                return rgb_image 
+            return rgb_image
             
         # Define visualization module options
         equation_functions = {
-            'none':(scene_to_raw, [image_path]),                     # Read in raw Sentinel-2 scene
-            'bc':  (scene_to_rgb, [image_path, band_list]),          # Band Composite
-            'ndi': (scene_to_ndi, [image_path, band_list]),          # Normalized Difference Index
-            'ssi': (scene_to_ssi, [image_path, band_list, atm_level]), # Spectral Shape Index
-            'top': (scene_to_top, [image_path, band_list, atm_level]), # RSI-top10
-            'pca': (scene_to_pca, [image_path]),                     # Principal Component Analysis
-            'fdi': (scene_to_fdi, [image_path, band_list, atm_level])  # Floating Debris Index
+            'none':(scene_to_raw, [patch]),                     # Read in raw Sentinel-2 scene
+            'bc':  (scene_to_rgb, [patch, band_list]),          # Band Composite
+            'ndi': (scene_to_ndi, [patch, band_list]),          # Normalized Difference Index
+            'ssi': (scene_to_ssi, [patch, band_list, atm_level]), # Spectral Shape Index
+            'top': (scene_to_top, [patch, band_list, atm_level]), # RSI-top10
+            'pca': (scene_to_pca, [patch]),                     # Principal Component Analysis
+            'fdi': (scene_to_fdi, [patch, band_list, atm_level])  # Floating Debris Index
         }
         
         # Check if the given vizualization method is valid
@@ -182,23 +165,22 @@ class SamForMarineDebris(Dataset):
         image = image.astype(np.float32) # To prevent issues with scaling later on, convert integers into floats
 
         # Load other variables
-        label = transforms.PILToTensor()(Image.open(label_path))
-        patchid = re.findall(r'\d+', image_path)[-1]
+        patchid = re.findall(r'\d+', patch)[-1]
 
-        def retrieve_point_prompts(sceneid):
+        def retrieve_point_prompts(patch):
             # Check if a .shp file exists for the given sceneid
-            shapefile_path = glob.glob(os.path.join("data/", sceneid, "*_pt.shp"))
+            shapefile_path = glob.glob(os.path.join("data/*_pt.shp"))
             
             if shapefile_path:
                 #print(f"Shapefile with point prompts found at '{shapefile_path}'")
                 # If the .shp file exists, execute the extract_marinedebris_points function.
-                 point_prompts, point_labels = extract_manual_prompts(shapefile_path, image_path, label, prompt_type='positive')
+                point_prompts, point_labels = extract_manual_prompts(shapefile_path, image, mask, prompt_type='positive')
             else:
                 #print("No shapefile for point prompts found (*_pt.shp). K-means (K=10) is executed for generating point prompts")
 
                 # Execute K-means on each individual RGB channel to generate 10 prompts
                 # Note: Plotting is set to False to speed up computation. Set to True for clustering results
-                point_prompts, point_labels = cluster_marinedebris(image, label, num_clusters=10, prompt_type='both', plotting=False) # K-means
+                point_prompts, point_labels = cluster_marinedebris(image, mask, num_clusters=10, prompt_type='both', plotting=False) # K-means
 
                 # Other options for semi-automated approaches
                 #point_prompts, point_labels = extract_all_prompts(label, min_pixel_count=10, prompt_type='positive')  # Random sampling 
@@ -207,6 +189,6 @@ class SamForMarineDebris(Dataset):
             return point_prompts, point_labels
     
         # Retrieve point prompts
-        point_prompts, point_labels = retrieve_point_prompts(sceneid)
+        point_prompts, point_labels = retrieve_point_prompts(patch)
 
-        return image, label, point_prompts, point_labels, patchid
+        return image, mask, point_prompts, point_labels, patchid

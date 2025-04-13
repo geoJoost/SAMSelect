@@ -9,7 +9,7 @@ from visualization.viz_spectraldata import get_spectral_statistics
 # Define start time to measure how long the script takes to complete
 start = time.time()
 
-def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', atm_level='L2A'):   
+def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', atm_level='L2A'):   
     """ SAMSelect 
     Notes for users:
     - SceneID should refer to the multispectral scene and data-folder in data/sceneID/, and needs to contain the following:
@@ -33,8 +33,8 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     NOTE: Computation can take up to 1-2 hours, depending on GPU / CPU
     NOTE: If the SAMSelect output exists, the runtime will be skipped and immediately go into tables & graphs
     """
-    #for equation in equation_list: # Iterate over the chosen visualization options
-    #    samselect(sceneid, band_list, narrow_search_bands, scaling, equation, model_type)
+    for equation in equation_list: # Iterate over the chosen visualization options
+        samselect(tif_path, polygon_path, band_list, narrow_search_bands, scaling, equation, model_type)
     
     """ Visualization & Graphs
     The first script prints the statistics for hte top-5 best scoring visualization for each visualization module available.
@@ -55,7 +55,7 @@ def samselect_wrapper(sceneid, band_list, narrow_search_bands=None, scaling='per
     """
     top1_combination, top1_equation, top1_masklevel = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
 
-    plot_patches(sceneid, band_list, top1_combination, top1_equation, top1_masklevel)
+    plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equation, top1_masklevel)
 
     """ Domain indices (marine debris)
     Notes for users:
@@ -77,7 +77,8 @@ l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11",
 l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]             # L2R
 
 # Execute the SAMSelect wrapper
-samselect_wrapper(sceneid= "durban_20190424_l2a", # Folder in which data is stored 
+samselect_wrapper(tif_path='data/durban_20190424_l2a.tif' , 
+                    polygon_path= "data/durban_20190424_qualitative_poly.shp",
                     band_list= l2a_bands, #=> Sentinel-2 L2A bands 
                     narrow_search_bands= None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
                     scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 

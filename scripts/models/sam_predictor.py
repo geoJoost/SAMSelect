@@ -10,10 +10,10 @@ from models.dataloader import SamForMarineDebris
 from utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
 from utils.metrics import calculate_metrics
 
-def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
+def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, band_list, equation, atm_level)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
+    dataset = SamForMarineDebris(tif_path, polygon_path, band_list, equation, atm_level)
+    dataloader = DataLoader(dataset, batch_size=45, shuffle=False, num_workers=0)
 
     # Define Segment Anything Model
     sam_models = {
@@ -23,7 +23,7 @@ def execute_SAM(sceneid, band_list, scaling, equation='bc', model_type='vit_b', 
     }
     sam_checkpoint = sam_models[model_type]
 
-    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device used: {device}")
 
     # Download the SAM encoder if it does not exist

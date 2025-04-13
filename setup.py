@@ -3,9 +3,9 @@ import subprocess
 import sys
 import os
 
-def install_dependencies_from_yaml():
-    """Install dependencies specified in environment.yaml."""
-    env_file = "environment.yaml"
+def install_dependencies_from_yml():
+    """Install dependencies specified in environment.yml."""
+    env_file = "environment.yml"
     if os.path.exists(env_file):
         try:
             # Install the dependencies using pip and PyYAML
@@ -28,8 +28,8 @@ def install_dependencies_from_yaml():
     else:
         print(f"{env_file} not found. Skipping dependency installation.")
 
-# Install dependencies from environment.yaml before setting up the package
-install_dependencies_from_yaml()
+# Install dependencies from environment.yml before setting up the package
+install_dependencies_from_yml()
 
 setup(
     name="SAMSelect",

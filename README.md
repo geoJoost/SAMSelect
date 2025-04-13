@@ -41,11 +41,11 @@ To run SAMSelect on your own data, you can modify [this Google Earth Engine scri
 
 ## Installation
 ```
-conda create --n samselect
+conda create --name samselect
 
 conda activate samselect
 
-conda install pytorch=2.4.1 torchvision=0.17.2 torchaudio=2.2.2 pytorch-cuda=12.4 -c pytorch -c nvidia
+pip3 install torch torchvision torchaudio
 
 conda env update --f environment.yml
 ```

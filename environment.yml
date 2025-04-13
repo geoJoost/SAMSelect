@@ -1,9 +1,6 @@
 name: samselect
 channels:
-  - pytorch
-  - nvidia 
   - conda-forge
-  - defaults
 
 dependencies:
   - segment-anything

@@ -4,70 +4,92 @@ import pandas as pd
 import geopandas as gpd
 import rasterio
 from rasterio.features import rasterize
+from shapely.geometry import box
 from PIL import Image
 import numpy as np
+import torch
 
-def load_scenedata(sceneid):
-    data_folder = os.path.join(f"data/", sceneid)
-
-    # Use glob to find all .tif and .png files in the specified folder
-    # The sorted is absolutely crucial as this matches the scene-data with reference
-    tif_files = sorted(glob.glob(os.path.join(data_folder, '*.tif'))) # Sentinel-2 data
-    png_files = sorted(glob.glob(os.path.join(data_folder, '*.png'))) # Reference masks
-
-    # If no .png's are found, we create new reference masks
-    # We check this to avoid recomputing labels for each spectral band combination
-    if not png_files:
-        create_reference_masks(data_folder, tif_files)
-
-        # Now that labels are created, we can load in the data
-        png_files = sorted(glob.glob(os.path.join(data_folder, '*.png')))
-
-    if len(tif_files) != len(png_files):
-        raise ValueError("Number of patches for scene-data and reference masks should be identical!")
-
-    return tif_files, png_files
-
-def create_reference_masks(data_folder, tif_files):
-    # Read in the polygon shapefile with annotations
-    shapefile_path = glob.glob(os.path.join(data_folder, "*qualitative*.shp"))[0]
-    assert shapefile_path, "No shapefile containing 'qualitative' found in the data folder. Please use this naming convention for your polygon annotations."
+def load_scenedata(tif_path, polygon_path, patch_size):
+    # Define cache filename
+    sceneid = os.path.splitext(os.path.basename(tif_path))[0]
+    cache_dir = os.path.join("data", "cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_file_patches = os.path.join(cache_dir, f"{sceneid}_patches.pt")
+    cache_file_masks = os.path.join(cache_dir, f"{sceneid}_masks.pt")
     
-    polygons = gpd.read_file(shapefile_path)
+    # Define output, in case no cache is found
+    patches, masks = [], []
 
-    for index, tif_file in enumerate(tif_files):
-        with rasterio.open(tif_file) as src:
-            polygons = polygons.to_crs(src.crs)
+    # Check if patches/masks are initialized beforehand
+    if os.path.exists(cache_file_patches):
+        print("[INFO-TEMPORARY]: Files are pre-processed.")
+        patches = torch.load(cache_file_patches)
+        masks = torch.load(cache_file_masks)
+        return patches, masks
+        
+    print(f"[INFO] Sentinel-2 scene is not pre-processed. Processing into patches ({patch_size}px) based on polygon annotations.")
+    # If not, process the Sentinel-2 scene into smaller image patches
+    # Read the files
+    polygons = gpd.read_file(polygon_path)
+    with rasterio.open(tif_path) as src:
+        out_shape = (src.height, src.width)
+        transform = src.transform
+        
+        polygons = polygons.to_crs(src.crs)
+                     
+        # First, we create smaller patches of the Sentinel-2 scene
+        # Get window size in geographic coordinates
+        window_size = patch_size * transform[0] # transform[0] gets pixel size in meters
+        
+        # Calculate the bounds of the entire scene
+        minx, miny, maxx, maxy = polygons.total_bounds
 
-            # Clip the polygon to the current TIFF file's bounds
-            clipped_polygon = polygons.clip(mask=src.bounds)
+        # Create a uniform grid of points based on patch_size
+        x_points = np.arange(minx, maxx, window_size)
+        y_points = np.arange(miny, maxy, window_size)
 
-            # Rasterize the clipped polygon
-            out_shape = (src.height, src.width)
-            transform = src.transform
-            rasterized = rasterize(
-                [(geom, 1) for geom in clipped_polygon.geometry],
-                out_shape=out_shape,
-                transform=transform,
-                #all_touched=True, # Select this option if you want thicker masks
-                fill=0,
-                dtype='uint8'
-            )
-            
-            # Rescale [0, 1] to [0, 255]
-            scaled_data = (rasterized * 255).astype(np.uint8)
+        # Iterate through each grid point
+        for x in x_points:
+            for y in y_points:
+                window = rasterio.windows.from_bounds(
+                    x, y,
+                    x + window_size, y + window_size,
+                    transform)
 
-            # Use the existing raster name and append '_gt' to it
-            # IMPORTANT: The TIFFs and PNGs need to be ordered and match with each other
-            # If they dont, metrics will not be reliable
-            filename = os.path.splitext(os.path.basename(tif_file))[0]
-            output_file = os.path.join(data_folder, f'{filename}_ref.png')
+                # Read the image data within the window
+                patch = src.read(window=window)
 
-            image = Image.fromarray(scaled_data)
-            image.save(output_file)
+                # Clip the annotations to image patch
+                window_bounds = (x, y, x + window_size, y + window_size)
+                polygons_clip = gpd.clip(polygons, box(*window_bounds))
 
-            print(f"Wrote annotated data: '{output_file}' to file")
+                # Rasterize the clipped polygon
+                rasterized = rasterize(
+                    [(geom, 1) for geom in polygons_clip.geometry],
+                    out_shape=(patch_size, patch_size),
+                    transform=rasterio.windows.transform(window, transform), #transform,
+                    fill=0,
+                    all_touched=True,  # Set to False for smaller labels
+                    dtype='uint8'
+                )
 
+                # Rescale [0, 1] to [0, 255] for Segment Anything
+                mask = (rasterized * 255).astype(np.uint8)
+
+                # Check if the mask contains any polygons
+                if np.any(mask != 0):
+                    # Add to list for eventual storage
+                    patches.append(patch)
+                    masks.append(mask)
+        
+    # Convert to tensor and save as Pytorch cache's
+    patches = torch.tensor(np.array(patches), dtype=torch.float32) # (N, C, patch_size, patch_size)
+    masks = torch.tensor(np.array(masks), dtype=torch.int8) # (N, 1, patch_size, patch_size)
+    
+    torch.save(patches, cache_file_patches)
+    torch.save(masks, cache_file_masks)
+        
+    return patches, masks
 
 def get_band_info(atm_level):
     assert atm_level in ('L1', 'L2A', 'L2R'), f"Invalid atmospheric corrected product '{atm_level}. Please insert one of the following products: Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R)"
@@ -145,27 +167,22 @@ def select_top_bands(sceneid, model_type, equation_list, top_number=10):
     
     return top_combinations['band_combination'].tolist()
 
-def get_atmospheric_level(sceneid, band_list):
+def get_atmospheric_level(tif_path, band_list):
     """
     Determines the atmospheric correction level based on the number of bands in a .tif file.
 
     Args:
-        sceneid (str): The scene ID corresponding to the dataset folder.
+        tif_path (str): The file-path of the Sentinel-2 scene.
         band_list (list): Expected list of bands for validation.
 
     Returns:
         str: Atmospheric correction level ('L1', 'L2A', 'L1R'), or None if bands are insufficient.
     """
-    data_folder = os.path.join("data", sceneid)
-    
-    # Find all .tif files in the folder, read in the first file
-    tif_files = sorted(glob.glob(os.path.join(data_folder, '*.tif')))
-    
-    if not tif_files:
-        raise FileNotFoundError(f"No .tif files found in {data_folder}")
-    
+    if not os.path.exists(tif_path):
+            raise FileNotFoundError(f"The file '{tif_path}' does not exist. Stopping execution.")
+   
     # Open the .tif file and check the number of bands
-    with rasterio.open(tif_files[0]) as src:
+    with rasterio.open(tif_path) as src:
         num_bands = src.count
         
         # Validate band list against the number of bands

@@ -10,7 +10,8 @@ from models.helper_functions import select_top_bands, get_atmospheric_level
 from utils.get_band_idx import get_band_idx
 from utils.process_band_columns import process_band_columns
 
-def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', atm_level='L2A'):
+def samselect(tif_path, polygon_path, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', atm_level='L2A'):
+    sceneid = os.path.splitext(os.path.basename(tif_path))[0]
     # Define the output file path
     output_csv = f"data/processed/{sceneid}_{equation}_{model_type}_results.csv"
     
@@ -39,7 +40,7 @@ def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_
         band_searchspace =  list(combinations(available_bands, num_bands))    
 
     # Get atmospheric correction level (L1, L2A or L2R)
-    atm_level = get_atmospheric_level(sceneid, band_list)
+    atm_level = get_atmospheric_level(tif_path, band_list)
     
     # Check for SSI visualization mode with insufficient bands
     if equation == 'ssi' and atm_level is None:
@@ -54,7 +55,7 @@ def samselect(sceneid, band_list, narrow_search_bands=None, scaling='percentile_
         bands_idx = get_band_idx(band_list, band_combination, equation)
 
         # Execute SAM and obtain a dataframe of mIoU scores
-        df_interim, _ = execute_SAM(sceneid, bands_idx, scaling, equation, model_type, atm_level)
+        df_interim, _ = execute_SAM(tif_path, polygon_path, bands_idx, scaling, equation, model_type, atm_level)
 
         # Append the current DataFrame to the combined DataFrame
         df_results = pd.concat([df_results, df_interim], ignore_index=True)

@@ -184,8 +184,7 @@ def cluster_marinedebris(image, label, num_clusters=5, prompt_type="both", plott
     debris_coords = np.argwhere(label == 255) # XY locations within marine debris patches
 
     # Extract values of pixels within marine debris patches
-    image_scaled = percentile_rescale(image, [1, 99]) # Normalize image into 0-255 range for RGB images
-    debris_values = image_scaled[label == 255]
+    debris_values = image[label == 255]
        
     # Perform K-means clustering
     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
@@ -244,7 +243,7 @@ def cluster_marinedebris(image, label, num_clusters=5, prompt_type="both", plott
             axes[i].grid(True)  # Add grid lines to the RGB plots
 
         # Overlay the cluster centers on the original image
-        axes[3].imshow(image_scaled)
+        axes[3].imshow(image)
         for cluster_index, (x, y) in enumerate(closest_pixels):
             axes[3].plot(x, y, 'o', color=colors[cluster_index], markersize=10)
 
