@@ -76,15 +76,15 @@ def load_scenedata(tif_path, polygon_path, patch_size):
                 # Rescale [0, 1] to [0, 255] for Segment Anything
                 mask = (rasterized * 255).astype(np.uint8)
 
-                # Check if the mask contains any polygons
-                if np.any(mask != 0):
-                    # Add to list for eventual storage
+                # Check if the mask contains more than 10 pixels labeled
+                if np.sum(mask == 255) > 10:
+                    # Add to list for storage
                     patches.append(patch)
                     masks.append(mask)
-        
+
     # Convert to tensor and save as Pytorch cache's
     patches = torch.tensor(np.array(patches), dtype=torch.float32) # (N, C, patch_size, patch_size)
-    masks = torch.tensor(np.array(masks), dtype=torch.int8) # (N, 1, patch_size, patch_size)
+    masks = torch.tensor(np.array(masks)).unsqueeze(1) # [N, 1, patch_size, patch_size]
     
     torch.save(patches, cache_file_patches)
     torch.save(masks, cache_file_masks)

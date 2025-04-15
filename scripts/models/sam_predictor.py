@@ -72,7 +72,7 @@ def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model
             image_scaled = scaling_methods[scaling][1](image)
 
             # Feed image to SAM predictor
-            predictor.set_image(np.array(image_scaled))
+            predictor.set_image(np.array(image_scaled.permute(1, 2, 0)))
 
             # Execute and extract statistics
             masks, scores, logits = predictor.predict(
@@ -92,7 +92,7 @@ def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model
         **{f'band_{i + 1}': band_list[i] for i in range(len(band_list))}, # Number of bands is varied, with three in BC & SSI, but only two for NDI
         'scaler': scaling_methods[scaling][0],
         'model': model_type,
-        'jaccard_lvl1': calculate_metrics(batch_label, pred_lvl1)['jaccard'],
+        'jaccard_lvl1': calculate_metrics(batch_label, pred_lvl1)['jaccard'], # IoU for mask-level 1 from SAM
         'jaccard_lvl2': calculate_metrics(batch_label, pred_lvl2)['jaccard'],
         'jaccard_lvl3': calculate_metrics(batch_label, pred_lvl3)['jaccard'],
     }

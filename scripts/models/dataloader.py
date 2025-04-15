@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 import glob
 
 from models.helper_functions import load_scenedata, get_band_info
-from utils.point_sampling_methods import extract_manual_prompts, cluster_marinedebris, \
+from utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters, \
     extract_prompts_skeleton, extract_all_prompts, extract_prompts_centroid
 
 # TODO: Documentation
@@ -162,12 +162,12 @@ class SamForMarineDebris(Dataset):
         # Check if the given vizualization method is valid
         assert equation in equation_functions, f"Invalid visualization module selected: {equation}"
         image = equation_functions[equation][0](*equation_functions[equation][1])
-        image = image.astype(np.float32) # To prevent issues with scaling later on, convert integers into floats
+        image = image.to(torch.float32) # To prevent issues with scaling later on, convert integers into floats
 
         # Load other variables
-        patchid = re.findall(r'\d+', patch)[-1]
+        patchid = idx + 1
 
-        def retrieve_point_prompts(patch):
+        def retrieve_point_prompts(image):
             # Check if a .shp file exists for the given sceneid
             shapefile_path = glob.glob(os.path.join("data/*_pt.shp"))
             
@@ -180,15 +180,15 @@ class SamForMarineDebris(Dataset):
 
                 # Execute K-means on each individual RGB channel to generate 10 prompts
                 # Note: Plotting is set to False to speed up computation. Set to True for clustering results
-                point_prompts, point_labels = cluster_marinedebris(image, mask, num_clusters=10, prompt_type='both', plotting=False) # K-means
+                point_prompts, point_labels = prompts_from_spectralclusters(image, mask, num_clusters=10, prompt_type='both', plotting=False) # K-means
 
                 # Other options for semi-automated approaches
-                #point_prompts, point_labels = extract_all_prompts(label, min_pixel_count=10, prompt_type='positive')  # Random sampling 
-                #point_prompts, point_labels = extract_prompts_centroid(label, min_pixel_count=0, prompt_type='both')  # Centroids
-                #point_prompts, point_labels = extract_prompts_skeleton(label, min_pixel_count=10, prompt_type='both') # Skeletons
+                #point_prompts, point_labels = extract_all_prompts(mask, min_pixel_count=10, prompt_type='positive')  # Random sampling 
+                #point_prompts, point_labels = extract_prompts_centroid(mask, min_pixel_count=0, prompt_type='both')  # Centroids
+                #point_prompts, point_labels = extract_prompts_skeleton(mask, min_pixel_count=10, prompt_type='both') # Skeletons
             return point_prompts, point_labels
     
         # Retrieve point prompts
-        point_prompts, point_labels = retrieve_point_prompts(patch)
+        point_prompts, point_labels = retrieve_point_prompts(image)
 
         return image, mask, point_prompts, point_labels, patchid

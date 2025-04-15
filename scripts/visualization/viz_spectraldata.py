@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading):
-
+def get_spectral_statistics(tif_path, polygon_path, band_list, equation_list, model_type, spectral_shading):
     """ Spectral statistics & top visualizations """
+    # Get sceneID for finding correct CSV
+    sceneid = os.path.splitext(os.path.basename(tif_path))[0]
+
     # Create an empty DataFrame to store the results
     df_allstats =  pd.DataFrame()
 
@@ -32,15 +34,25 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
         
         # Further melt the dataset to get a single row for each mask level
         df_melt = pd.melt(df_scene, id_vars=keep_columns, 
-                            value_vars=['jaccard_lvl1', 'jaccard_lvl2', 'jaccard_lvl3'], var_name='mask_level', value_name='miou')
+                            value_vars=['jaccard_lvl1', 'jaccard_lvl2', 'jaccard_lvl3'], var_name='mask_level', value_name='iou')
         df_melt.drop_duplicates(subset=['band_combination', 'mask_level'], inplace=True)
 
         # Select the top-5 best performing combinations
-        df_top5 = df_melt.nlargest(5, 'miou')
+        df_top5 = df_melt.nlargest(5, 'iou')
 
         print(f"{'-'*40} Scene: {sceneid} with {equation} {'-'*40}")
-        df_top5['miou'] = df_top5['miou'].round(3) * 100 # Convert decimals into percentages
-        print(f"{df_top5[['sceneid', 'band_combination', 'mask_level', 'miou']]}\n")
+        df_top5['iou'] = df_top5['iou'].round(3) * 100 # Convert decimals into percentages
+        
+        # Rename the columns for pretty-print
+        df_print = df_top5.rename(columns={
+            'sceneid': 'SceneID',
+            'band_combination': 'Band Combination',
+            'mask_level': 'Mask Level',
+            'iou': 'IoU (%)'
+        })
+
+        # Print the DataFrame with the selected columns
+        print(f"{df_print[['SceneID', 'Band Combination', 'Mask Level', 'IoU (%)']]}\n")
 
         # Combine the dataframes
         df_allstats = pd.concat([df_allstats, df_top5])
@@ -135,8 +147,8 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
     print(f"Top-5 most frequently selected spectral bands saved in '{output_path}")
 
     """ Retrieve top-1 result to use in function plot_patches() """
-    # Get the visualization with the maximum mIoU score
-    best_row = df_allstats[df_allstats['miou'] == df_allstats['miou'].max()]
+    # Get the visualization with the maximum IoU score
+    best_row = df_allstats[df_allstats['iou'] == df_allstats['iou'].max()]
         
     # Map mask_level to a variable for next visualization function
     LEVEL_MAPPING = {
@@ -161,7 +173,7 @@ def get_spectral_statistics(sceneid, band_list, equation_list, model_type, spect
     # And extract the equation / visualization type
     equation_type = best_row['equation'].iloc[0]
 
-    print(f"Best visualization found by SAMSelect is: '{equation_type}' with an mIoU score of {best_row['miou'].iloc[0]:.2f}%")
+    print(f"Best visualization found by SAMSelect is: '{equation_type}' with an IoU score of {best_row['iou'].iloc[0]:.2f}%")
     print(f"Using bands: {top1_combination}")
     print(f"With SAM: {top1_masklevel}")
 

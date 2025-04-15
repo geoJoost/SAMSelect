@@ -26,7 +26,7 @@ def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=Non
         - BC --> Band composites being false colour composites using three spectral bands
         - NDI --> Normalized Difference Indices such as NDVI, NDWI
         - SSI --> Spectral Shape Indices such as FAI
-        - top --> RSI-top10 being the top-10 most informative NDI and SSIs (requires the previous two have been computed). Uses spectral indices instead of spectral bands
+        - SIC --> Spectral Index Composite, being the top-10 most informative NDI and SSIs (requires the previous two have been computed). Uses spectral indices instead of spectral bands
     - Model_type refers to the image encoder of SAM (vit_b, vit_l, vit_h)
     - Sensor_type refers to which Sentinel-2 satellite is used (S2A, S2B). Only used for SSI and FDI calculations. Support for other satellites not integrated yet
 
@@ -53,7 +53,7 @@ def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=Non
 
     NOTE: Similar to the comparison scripts, band selection for NDVI and FDI are hard-coded    
     """
-    top1_combination, top1_equation, top1_masklevel = get_spectral_statistics(sceneid, band_list, equation_list, model_type, spectral_shading=False)
+    top1_combination, top1_equation, top1_masklevel = get_spectral_statistics(tif_path, polygon_path, band_list, equation_list, model_type, spectral_shading=False)
 
     plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equation, top1_masklevel)
 
@@ -63,13 +63,13 @@ def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=Non
     - If using a different sensor (e.g., Landsat or PlanetScope data), modify this code or comment it out
     """
     # NDVI [B8, B4]
-    #execute_ndvi(sceneid, band_list, scaling, equation='ndi', model_type=model_type)
+    execute_ndvi(tif_path, polygon_path, band_list, scaling, equation='ndi', model_type=model_type)
     
     # Floating Debris Index (FDI) [B8, B6, B11 + B4 (central wavelength value)]
-    #execute_fdi(sceneid, l2a_bands, scaling, equation='fdi', model_type=model_type)
+    execute_fdi(tif_path, polygon_path, l2a_bands, scaling, equation='fdi', model_type=model_type)
     
     # Principal Component Analysis (PCA) [All available bands]
-    #execute_pca(sceneid, l2a_bands, scaling, equation='pca', model_type=model_type)
+    execute_pca(tif_path, polygon_path, l2a_bands, scaling, equation='pca', model_type=model_type)
 
 # Define Sentinel-2 spectral bands
 l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
@@ -80,7 +80,7 @@ l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"
 samselect_wrapper(tif_path='data/durban_20190424_l2a.tif' , 
                     polygon_path= "data/durban_20190424_qualitative_poly.shp",
                     band_list= l2a_bands, #=> Sentinel-2 L2A bands 
-                    narrow_search_bands= None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
+                    narrow_search_bands= ['B1', 'B2','B3', 'B4'], #None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
                     scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
                     equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
                     model_type= 'vit_b') #=> SAM encoder

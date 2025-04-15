@@ -14,15 +14,15 @@ from models.helper_functions import get_atmospheric_level
 torch.manual_seed(42), random.seed(42)
 
 
-def get_img(sceneid, band_list, band_combination, equation):
+def get_img(tif_path, polygon_path, band_list, band_combination, equation):
     # Get atmospheric correction level (L1, L2A or L2R)
-    atm_level = get_atmospheric_level(sceneid, band_list)
+    atm_level = get_atmospheric_level(tif_path, band_list)
     
     bands_idx = get_band_idx(band_list, band_combination, equation)
 
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, atm_level)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
+    dataset = SamForMarineDebris(tif_path, polygon_path, bands_idx, equation, atm_level)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=0)
 
     # Initialize a list to store images
     images, patch_ids = [], []
@@ -42,9 +42,9 @@ def get_img(sceneid, band_list, band_combination, equation):
     return images, batch_label, batch_point_prompts, batch_point_labels, patch_ids
 
 
-def get_img_pred(sceneid, band_list, band_combination, equation, mask_level):
+def get_img_pred(tif_path, polygon_path, band_list, band_combination, equation, mask_level):
     # Get atmospheric correction level (L1, L2A or L2R)
-    atm_level = get_atmospheric_level(sceneid, band_list)
+    atm_level = get_atmospheric_level(tif_path, band_list)
     
     # Get indices of the band_combination
     bands_idx = get_band_idx(band_list, band_combination, equation)
@@ -53,13 +53,13 @@ def get_img_pred(sceneid, band_list, band_combination, equation, mask_level):
     mask_level_map = {'level-1':0, 'level-2': 1, 'level-3': 2}
     mask_level_idx = mask_level_map[mask_level]
 
-    dataset = SamForMarineDebris(sceneid, bands_idx, equation, atm_level)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
+    dataset = SamForMarineDebris(tif_path, polygon_path, bands_idx, equation, atm_level)
+    dataloader = DataLoader(dataset, batch_size=45, shuffle=False, num_workers=0)
 
     # Define Segment Anything Model
     sam_checkpoint = r'data/models/sam_vit_b_01ec64.pth'
     model_type = "vit_b"
-    device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"\nDevice used: {device}")
 
     # Load Segment Anything Model
@@ -87,7 +87,7 @@ def get_img_pred(sceneid, band_list, band_combination, equation, mask_level):
             label[label == 255] = 1 # Convert unique values from (0, 255) => (0, 1)
 
             # Feed image to SAM predictor
-            predictor.set_image(np.array(image_scaled))
+            predictor.set_image(np.array(image_scaled.permute(1, 2, 0)))
 
             # Execute and extract statistics
             masks, scores, logits = predictor.predict(

@@ -5,16 +5,18 @@ import torch
 from utils.image_predictions import get_img, get_img_pred
 from models.helper_functions import get_atmospheric_level
 
-def plot_patches(sceneid, band_list, top1_combination, top1_equation, top1_masklevel):
+def plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equation, top1_masklevel):
+    sceneid = os.path.splitext(os.path.basename(tif_path))[0]
+    
     # Make patches for true-colour (VIS), NDVI and FDI
     # Also load the labels and point prompts
-    images_vis, batch_label, point_prompts, point_labels, patch_ids = get_img(sceneid, band_list, ['B4', 'B3', 'B2'], 'bc') # True-colour
-    images_ndvi = get_img(sceneid, band_list, ['B8', 'B4'], 'ndi')[0] # NDVI
-    images_fdi = get_img(sceneid, band_list, ["B8", "B6", "B11"], 'fdi')[0] # FDI
+    images_vis, batch_label, point_prompts, point_labels, patch_ids = get_img(tif_path, polygon_path, band_list, ['B4', 'B3', 'B2'], 'bc') # True-colour
+    images_ndvi = get_img(tif_path, polygon_path, band_list, ['B8', 'B4'], 'ndi')[0] # NDVI
+    images_fdi = get_img(tif_path, polygon_path, band_list, ["B8", "B6", "B11"], 'fdi')[0] # FDI
 
     # Retrieve top-1 results from SAMSelect
-    images_top1 = get_img(sceneid, band_list, top1_combination, top1_equation)[0] # Spectral index Composites
-    images, batch_label, point_prompts, point_labels, batch_patchid, masks_lst = get_img_pred(sceneid, band_list, top1_combination, top1_equation, top1_masklevel)
+    images_top1 = get_img(tif_path, polygon_path, band_list, top1_combination, top1_equation)[0] # Spectral Index Composites
+    images, batch_label, point_prompts, point_labels, batch_patchid, masks_lst = get_img_pred(tif_path, polygon_path, band_list, top1_combination, top1_equation, top1_masklevel)
         
     # Plot all images in a single row
     no_img = len(images_vis)
@@ -26,23 +28,23 @@ def plot_patches(sceneid, band_list, top1_combination, top1_equation, top1_maskl
     ### Data ###
     # Row 1: True-colour
     for i, (image, patchid) in enumerate(zip(images_vis, patch_ids)):
-        axes[0,i].imshow(image)
+        axes[0,i].imshow(image.permute(1, 2, 0))
         axes[0,i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
         axes[0,i].set_title(f"#{patchid}")
 
     # Row 2: NDVI
     for i, image_ndvi in enumerate(images_ndvi):
-        axes[1,i].imshow(image_ndvi)
+        axes[1,i].imshow(image_ndvi.permute(1, 2, 0))
         axes[1,i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
 
     # Row 3: FDI
     for i, image_fdi in enumerate(images_fdi):
-        axes[2,i].imshow(image_fdi)
+        axes[2,i].imshow(image_fdi.permute(1, 2, 0))
         axes[2,i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
 
     # Row 4: Top-1 from SAMSelect
     for i, image_top1 in enumerate(images_top1):
-        axes[3,i].imshow(image_top1)
+        axes[3,i].imshow(image_top1.permute(1, 2, 0))
         axes[3,i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
 
     # Row 5: Label / Reference
@@ -82,15 +84,3 @@ def plot_patches(sceneid, band_list, top1_combination, top1_equation, top1_maskl
     os.makedirs("doc/figures", exist_ok=True)  
     plt.savefig(f"doc/figures/{sceneid}_patches.png", dpi=600, transparent=False)
     plt.close()
-
-# Sentinel-2 L2A bands
-#l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]
-
-# Top-1 visualizations identified by SAMSelect
-#top1_accra = [['B2', 'B8'], ['B1', 'B8', 'B11'], ['B2', 'B8', 'B11']]
-#top1_durban = [['B2', 'B8'], ['B1', 'B8A'], ['B3', 'B8']]
-
-#plot_patches('accra_20181031_l2a', l2a_bands, top1_accra, 'level-3')
-#plot_patches('durban_20190424_l2a', l2a_bands, top1_durban, 'level-3')
-
-

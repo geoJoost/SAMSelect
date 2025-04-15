@@ -25,31 +25,34 @@ def minmax_rescale(arr):
 
     return rescaled_arr
 
-def percentile_rescale(arr, pct_list):
-    """
-    Rescale the array values to the range [0, 255] for each individual array using percentiles.
-    """
-    # Create an empty array to store the rescaled values
-    rescaled_arr = np.zeros_like(arr, dtype=np.uint8)
 
-    # Iterate through the first dimension
-    for i in range(arr.shape[2]):
-        # Extract the individual array
-        single_band_arr = arr[:, :, i]
+def percentile_rescale(tensor, pct_list):
+    """
+    Rescale the tensor values to the range [0, 255] for each individual band using percentiles.
+    """
+    # Create an empty tensor to store the rescaled values
+    rescaled_tensor = torch.zeros_like(tensor, dtype=torch.uint8)
+
+    # Iterate through the first dimension (assuming the tensor shape is [C, H, W])
+    for i in range(tensor.shape[0]):
+        # Extract the individual band tensor
+        single_band_tensor = tensor[i, :, :]
 
         # Calculate the 2nd and 98th percentiles for the individual band
-        p2, p98 = np.percentile(single_band_arr, (pct_list[0], pct_list[1]))
+        p2 = torch.quantile(single_band_tensor, pct_list[0] / 100)
+        p98 = torch.quantile(single_band_tensor, pct_list[1] / 100)
 
-        # Rescale the individual array using percentiles
-        scaled_arr = exposure.rescale_intensity(np.array(single_band_arr), in_range=(p2, p98))
+        # Rescale the individual band tensor using percentiles
+        scaled_tensor = (single_band_tensor - p2) / (p98 - p2)
+        scaled_tensor = torch.clip(scaled_tensor, 0, 1)  # Ensure values are in the range [0, 1]
 
         # Scale the values to the range [0, 255] and convert to uint8
-        scaled_arr = (scaled_arr * 255).astype(np.uint8)
+        scaled_tensor = (scaled_tensor * 255).to(torch.uint8)
 
-        # Update the rescaled_arr with the individual rescaled array
-        rescaled_arr[:, :, i] = scaled_arr
+        # Update the rescaled_tensor with the individual rescaled band
+        rescaled_tensor[i, :, :] = scaled_tensor
 
-    return rescaled_arr
+    return rescaled_tensor
 
 def histogram_rescale(arr):
     """

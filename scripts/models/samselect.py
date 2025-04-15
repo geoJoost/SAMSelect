@@ -54,7 +54,7 @@ def samselect(tif_path, polygon_path, band_list, narrow_search_bands=None, scali
         # Get index positions corresponding to the bands; e.g., [B1, B2, B3] => [1, 2, 3]
         bands_idx = get_band_idx(band_list, band_combination, equation)
 
-        # Execute SAM and obtain a dataframe of mIoU scores
+        # Execute SAM and obtain a dataframe of IoU scores
         df_interim, _ = execute_SAM(tif_path, polygon_path, bands_idx, scaling, equation, model_type, atm_level)
 
         # Append the current DataFrame to the combined DataFrame

@@ -167,28 +167,28 @@ def extract_all_prompts(label, min_pixel_count=10, prompt_type="positive"):
 
     return torch.tensor(priors_padded), torch.tensor(prior_labels_padded, dtype=torch.uint8)
 
-def cluster_marinedebris(image, label, num_clusters=5, prompt_type="both", plotting=False):
+def prompts_from_spectralclusters(image, label, num_clusters=10, prompt_type="both", plotting=False):
     """
-    Cluster marine debris pixels and return the coordinates of pixels closest to cluster centroids.
+    Cluster annotated pixels and return the coordinates of pixels closest to cluster centroids.
     
     Parameters:
     - image (np.array): The input image array.
     - label: torch.Tensor, binary tensor of shape [1, height, width] with values 0 or 255.
-    - num_clusters (int): The number of clusters for K-means. Default is 5.
+    - num_clusters (int): The number of clusters for K-means. Default is 10.
     
     Returns:
     - List of tuples with coordinates of pixels closest to cluster centroids.
     """
     
     label = label.squeeze().numpy()
-    debris_coords = np.argwhere(label == 255) # XY locations within marine debris patches
+    debris_coords = np.argwhere(label == 255) # XY locations within annotations
 
-    # Extract values of pixels within marine debris patches
-    debris_values = image[label == 255]
+    # Extract values of pixels within annotations
+    spectral_values = image[:, label == 255].T # Transpose from [n_features, n_samples] into [n_samples, n_features]
        
     # Perform K-means clustering
     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-    kmeans.fit(debris_values)
+    kmeans.fit(spectral_values)
     
     # Get cluster centers
     cluster_centers = kmeans.cluster_centers_
@@ -197,8 +197,8 @@ def cluster_marinedebris(image, label, num_clusters=5, prompt_type="both", plott
     # Find the closest pixel to each cluster center in the RGB space
     closest_pixels = []
     for center in cluster_centers:
-        # Calculate the distance from each debris pixel's RGB value to the cluster center
-        distances = np.linalg.norm(debris_values - center, axis=1)
+        # Calculate the distance from each annotated pixel's RGB value to the cluster center
+        distances = np.linalg.norm(spectral_values - center, axis=1)
         closest_index = np.argmin(distances)
         closest_pixels.append(tuple(debris_coords[closest_index]))
     
@@ -236,7 +236,7 @@ def cluster_marinedebris(image, label, num_clusters=5, prompt_type="both", plott
         color_indices = [(0, 1), (1, 2), (2, 0)]
 
         for i, ((x_color, y_color), (x_idx, y_idx)) in enumerate(zip(color_pairs, color_indices)):
-            scatter = axes[i].scatter(debris_values[:, x_idx], debris_values[:, y_idx], c=cluster_labels, cmap='tab10', s=10)
+            scatter = axes[i].scatter(spectral_values[:, x_idx], spectral_values[:, y_idx], c=cluster_labels, cmap='tab10', s=10)
             axes[i].set_title(f'{x_color} vs. {y_color}')
             axes[i].set_xlim(0, 255)  # Set limits for RGB values
             axes[i].set_ylim(0, 255)  # Set limits for RGB values
