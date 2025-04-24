@@ -2,8 +2,9 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import torch
-from utils.image_predictions import get_img, get_img_pred
-from models.helper_functions import get_atmospheric_level
+
+# Custom imports
+from scripts.utils.image_predictions import get_img, get_img_pred
 
 def plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equation, top1_masklevel):
     sceneid = os.path.splitext(os.path.basename(tif_path))[0]

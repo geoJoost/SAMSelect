@@ -6,9 +6,9 @@ from segment_anything import sam_model_registry, SamPredictor
 import pandas as pd
 
 # Custom modules
-from models.dataloader import SamForMarineDebris
-from utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
-from utils.metrics import calculate_metrics
+from scripts.models.dataloader import SamForMarineDebris
+from scripts.utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
+from scripts.utils.metrics import calculate_metrics
 
 def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
     # Load dataset for marine debris

@@ -12,7 +12,8 @@ from scipy.ndimage import label as nd_label # Prevent naming conflicts with vari
 from scipy.spatial import distance
 from skimage.morphology import skeletonize
 
-from utils.feature_scaling_functions import percentile_rescale
+# Custom imports
+from scripts.utils.feature_scaling_functions import percentile_rescale
 
 torch.manual_seed(42), random.seed(42)
 

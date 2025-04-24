@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from skimage import exposure
 
-
 def minmax_rescale(arr):
     """Rescale the array values to the range [0, 255] for each individual array."""
     # Create an empty array to store the rescaled values

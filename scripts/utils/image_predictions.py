@@ -5,11 +5,11 @@ import numpy as np
 from segment_anything import sam_model_registry, SamPredictor
 
 # Custom modules
-from utils.get_band_idx import get_band_idx
-from models.dataloader import SamForMarineDebris
-from utils.feature_scaling_functions import percentile_rescale
-from utils.metrics import calculate_metrics
-from models.helper_functions import get_atmospheric_level
+from scripts.utils.get_band_idx import get_band_idx
+from scripts.models.dataloader import SamForMarineDebris
+from scripts.utils.feature_scaling_functions import percentile_rescale
+from scripts.utils.metrics import calculate_metrics
+from scripts.models.helper_functions import get_atmospheric_level
 
 torch.manual_seed(42), random.seed(42)
 

@@ -1,10 +1,10 @@
 import time
 
 # Custom modules
-from models.spectral_indices import execute_ndvi, execute_fdi, execute_pca
-from models.samselect import samselect
-from visualization.viz_patches import plot_patches
-from visualization.viz_spectraldata import get_spectral_statistics
+from scripts.models.spectral_indices import execute_ndvi, execute_fdi, execute_pca
+from scripts.models.samselect import samselect
+from scripts.visualization.viz_patches import plot_patches
+from scripts.visualization.viz_spectraldata import get_spectral_statistics
 
 # Define start time to measure how long the script takes to complete
 start = time.time()

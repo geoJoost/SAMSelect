@@ -5,10 +5,10 @@ import glob
 import rasterio
 
 # Custom modules
-from models.sam_predictor import execute_SAM
-from models.helper_functions import select_top_bands, get_atmospheric_level
-from utils.get_band_idx import get_band_idx
-from utils.process_band_columns import process_band_columns
+from scripts.models.sam_predictor import execute_SAM
+from scripts.models.helper_functions import select_top_bands, get_atmospheric_level
+from scripts.utils.get_band_idx import get_band_idx
+from scripts.utils.process_band_columns import process_band_columns
 
 def samselect(tif_path, polygon_path, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', atm_level='L2A'):
     sceneid = os.path.splitext(os.path.basename(tif_path))[0]

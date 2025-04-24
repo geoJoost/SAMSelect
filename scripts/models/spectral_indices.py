@@ -1,10 +1,10 @@
 import os
 
 # Custom imports
-from models.sam_predictor import execute_SAM
-from models.helper_functions import select_top_bands, get_band_info, get_atmospheric_level
-from utils.get_band_idx import get_band_idx
-from utils.process_band_columns import process_band_columns
+from scripts.models.sam_predictor import execute_SAM
+from scripts.models.helper_functions import select_top_bands, get_band_info, get_atmospheric_level
+from scripts.utils.get_band_idx import get_band_idx
+from scripts.utils.process_band_columns import process_band_columns
 
 def execute_ndvi(tif_path, polygon_path, band_list, scaling, equation='ndi', model_type='vit_b'):
     # Define NDVI bands

@@ -1,27 +1,32 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import subprocess
 import sys
 import os
 
 def install_dependencies_from_yml():
-    """Install dependencies specified in environment.yml."""
+    """Install dependencies specified in environment.yml using Conda."""
     env_file = "environment.yml"
     if os.path.exists(env_file):
         try:
-            # Install the dependencies using pip and PyYAML
-            print(f"Installing dependencies from {env_file}...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
-            import yaml
+            # Check if Conda is installed
+            conda_executable = os.environ.get('CONDA_EXE', 'conda')
+            print(f"Using Conda executable: {conda_executable}")
 
-            with open(env_file, "r") as file:
-                env = yaml.safe_load(file)
-                dependencies = env.get("dependencies", [])
-                pip_dependencies = [
-                    dep for dep in dependencies if isinstance(dep, str)
-                ]
-                for pip_dep in pip_dependencies:
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", pip_dep])
-                print("Dependencies installed successfully!")
+            # Create the Conda environment
+            print(f"Creating Conda environment from {env_file}...")
+            subprocess.check_call([conda_executable, "env", "create", "-f", env_file])
+
+            # Activate the Conda environment
+            env_name = "samselect"
+            activate_command = f"conda activate {env_name} && "
+
+            # Install the package in the activated environment
+            subprocess.check_call(
+                activate_command + [sys.executable, "-m", "pip", "install", "."],
+                shell=True
+            )
+
+            print("Dependencies and package installed successfully!")
         except Exception as e:
             print(f"Error installing dependencies from {env_file}: {e}")
             sys.exit(1)
@@ -34,9 +39,9 @@ install_dependencies_from_yml()
 setup(
     name="SAMSelect",
     version="0.1",
-    py_modules=["samselect"],  # Reference the single script
+    packages=find_packages(),  # Automatically find packages in the directory
     include_package_data=True,
-    description="A spectral search algorithm for multi-spectral images using SAM",
+    description="SAMSelect: An Automated Spectral Index Search using Segment Anything",
     author="Joost van Dalen, Marc Rußwurm",
     author_email="your.email@example.com",
     entry_points={

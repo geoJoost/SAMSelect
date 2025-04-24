@@ -22,7 +22,7 @@ def load_scenedata(tif_path, polygon_path, patch_size):
 
     # Check if patches/masks are initialized beforehand
     if os.path.exists(cache_file_patches):
-        print("[INFO-TEMPORARY]: Files are pre-processed.")
+        #print("[INFO]: Files are pre-processed. Loading cache.")
         patches = torch.load(cache_file_patches)
         masks = torch.load(cache_file_masks)
         return patches, masks

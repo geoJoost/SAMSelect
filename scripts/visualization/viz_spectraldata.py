@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 def get_spectral_statistics(tif_path, polygon_path, band_list, equation_list, model_type, spectral_shading):
     """ Spectral statistics & top visualizations """
     # Get sceneID for finding correct CSV

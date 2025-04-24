@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
-from utils.image_predictions import get_img
+from scripts.utils.image_predictions import get_img
 
 """ Stand-alone script for printing the figure used in the article """
-
 def plot_combined_patches(sceneids, band_lists, top1_combinations, patch_indices):
     no_scenes = len(sceneids)
     no_img_per_scene = len(patch_indices[0])  # Number of columns per scene, based on patch_indices

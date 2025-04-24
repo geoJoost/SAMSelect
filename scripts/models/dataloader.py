@@ -9,8 +9,8 @@ import re
 from sklearn.decomposition import PCA
 import glob
 
-from models.helper_functions import load_scenedata, get_band_info
-from utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters, \
+from scripts.models.helper_functions import load_scenedata, get_band_info
+from scripts.utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters, \
     extract_prompts_skeleton, extract_all_prompts, extract_prompts_centroid
 
 # TODO: Documentation
