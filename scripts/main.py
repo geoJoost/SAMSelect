@@ -1,13 +1,8 @@
-import time
-
 # Custom modules
 from scripts.models.spectral_indices import execute_ndvi, execute_fdi, execute_pca
 from scripts.models.samselect import samselect
 from scripts.visualization.viz_patches import plot_patches
 from scripts.visualization.viz_spectraldata import get_spectral_statistics
-
-# Define start time to measure how long the script takes to complete
-start = time.time()
 
 def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation_list=['bc', 'ndi', 'ssi', 'top'], model_type='vit_b', atm_level='L2A'):   
     """ SAMSelect 
@@ -66,23 +61,21 @@ def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=Non
     execute_ndvi(tif_path, polygon_path, band_list, scaling, equation='ndi', model_type=model_type)
     
     # Floating Debris Index (FDI) [B8, B6, B11 + B4 (central wavelength value)]
-    execute_fdi(tif_path, polygon_path, l2a_bands, scaling, equation='fdi', model_type=model_type)
+    execute_fdi(tif_path, polygon_path, band_list, scaling, equation='fdi', model_type=model_type)
     
     # Principal Component Analysis (PCA) [All available bands]
-    execute_pca(tif_path, polygon_path, l2a_bands, scaling, equation='pca', model_type=model_type)
+    execute_pca(tif_path, polygon_path, band_list, scaling, equation='pca', model_type=model_type)
 
 # Define Sentinel-2 spectral bands
-l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
-l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]       # L2A
-l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]             # L2R
+#l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
+#l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]       # L2A
+#l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]             # L2R
 
 # Execute the SAMSelect wrapper
-samselect_wrapper(tif_path='data/durban_20190424_l2a.tif' , 
-                    polygon_path= "data/durban_20190424_qualitative_poly.shp",
-                    band_list= l2a_bands, #=> Sentinel-2 L2A bands 
-                    narrow_search_bands= ['B1', 'B2','B3', 'B4'], #None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
-                    scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
-                    equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
-                    model_type= 'vit_b') #=> SAM encoder
-
-print(f"Script finished in {round(time.time() - start, 4)} seconds")
+#samselect_wrapper(tif_path='data/durban_20190424_l2a.tif' , 
+#                    polygon_path= "data/durban_20190424_qualitative_poly.shp",
+#                    band_list= l2a_bands, #=> Sentinel-2 L2A bands 
+#                    narrow_search_bands= ['B1', 'B2','B3', 'B4'], #None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
+#                    scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
+#                    equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
+#                    model_type= 'vit_b') #=> SAM encoder
