@@ -41,10 +41,11 @@ def execute_pca(tif_path, polygon_path, band_list, scaling, equation='pca', mode
     atm_level = get_atmospheric_level(tif_path, band_list)
     
     # Execute SAM and obtain a dataframe of Jaccard scores
-    df_pca, _ = execute_SAM(tif_path, polygon_path, _, scaling, equation, model_type, atm_level)
+    df_pca, _ = execute_SAM(tif_path, polygon_path, band_list, scaling, equation, model_type, atm_level)
 
     # Compute the mean statistic for both mask levels
     sceneid = os.path.splitext(os.path.basename(tif_path))[0]
+    
     # Rename the columns for pretty-print
     df_print = df_pca.rename(columns={
         'jaccard_lvl1': 'Level-1: IoU (%)',

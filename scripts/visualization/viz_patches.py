@@ -22,7 +22,7 @@ def plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equat
     # Plot all images in a single row
     no_img = len(images_vis)
     no_rows = 6
-    fig, axes = plt.subplots(no_rows, no_img , figsize=(no_img * 3, no_rows * 2.5))
+    fig, axes = plt.subplots(no_rows, no_img , figsize=(no_img * 3, no_rows * 2.5), squeeze=False)
 
     binary_cmap = ListedColormap(['#FCF3EE', '#68000D'])
 
@@ -50,7 +50,10 @@ def plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equat
 
     # Row 5: Label / Reference
     for i, (label, points, p_labels) in enumerate(zip(batch_label.squeeze(0), point_prompts, point_labels)):
-        axes[4,i].imshow(label.permute(1, 2, 0), cmap=binary_cmap)
+        if label.dim() == 2:
+            axes[4, i].imshow(label, cmap=binary_cmap)
+        else:
+            axes[4, i].imshow(label.permute(1, 2, 0), cmap=binary_cmap)
         axes[4,i].tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
 
         # Plot point prompts used for prediction
@@ -82,6 +85,7 @@ def plot_patches(tif_path, polygon_path, band_list, top1_combination, top1_equat
 
     # Save
     plt.tight_layout()
+    plt.show()
     os.makedirs("doc/figures", exist_ok=True)  
     plt.savefig(f"doc/figures/{sceneid}_patches.png", dpi=600, transparent=False)
     plt.close()

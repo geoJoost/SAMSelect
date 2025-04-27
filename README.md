@@ -6,7 +6,7 @@
 
 > SAMSelect discovers three-channel visualizations from multispectral imagery where pre-specified objects are most visible. It builds on Meta's [Segment Anything Model (SAM)](https://segment-anything.com/) to rank band combinations based on segmentation accuracy in the 3-channel visualization. 
 
-![SAMSelect](./doc/SAMSelect.png)
+![SAMSelect](./doc/Flowchart_SAMSelect.png)
 
 <!--
 If you've found SAMSelect helpful in your research, we'd love to hear about it! Your feedback helps us continue to improve the tool.
@@ -37,7 +37,7 @@ To run SAMSelect on your own data, you can modify [this Google Earth Engine scri
 
 ## Example Visualizations
 
-![SAMSelect visualizations](./doc/figures/samselect_patches.png)
+![SAMSelect visualizations](./doc/samselect_patches.png)
 
 ## Installation
 ```

@@ -1,8 +1,6 @@
 import pandas as pd
 from itertools import combinations
 import os
-import glob
-import rasterio
 
 # Custom modules
 from scripts.models.sam_predictor import execute_SAM

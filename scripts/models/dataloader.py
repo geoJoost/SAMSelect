@@ -10,9 +10,7 @@ from sklearn.decomposition import PCA
 import glob
 
 from scripts.models.helper_functions import load_scenedata, get_band_info
-from scripts.utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters, \
-    extract_prompts_skeleton, extract_all_prompts, extract_prompts_centroid
-
+from scripts.utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters
 # TODO: Documentation
 class SamForMarineDebris(Dataset):
     def __init__(self, tif_path, polygon_path, band_list=[4, 3, 2], equation='bc', atm_level='L2A'):
@@ -172,20 +170,14 @@ class SamForMarineDebris(Dataset):
             shapefile_path = glob.glob(os.path.join("data/*_pt.shp"))
             
             if shapefile_path:
-                #print(f"Shapefile with point prompts found at '{shapefile_path}'")
                 # If the .shp file exists, execute the extract_marinedebris_points function.
+                # UNUSED: argument removed in favour for automated K-means point prompts
                 point_prompts, point_labels = extract_manual_prompts(shapefile_path, image, mask, prompt_type='positive')
             else:
-                #print("No shapefile for point prompts found (*_pt.shp). K-means (K=10) is executed for generating point prompts")
-
                 # Execute K-means on each individual RGB channel to generate 10 prompts
                 # Note: Plotting is set to False to speed up computation. Set to True for clustering results
                 point_prompts, point_labels = prompts_from_spectralclusters(image, mask, num_clusters=10, prompt_type='both', plotting=False) # K-means
 
-                # Other options for semi-automated approaches
-                #point_prompts, point_labels = extract_all_prompts(mask, min_pixel_count=10, prompt_type='positive')  # Random sampling 
-                #point_prompts, point_labels = extract_prompts_centroid(mask, min_pixel_count=0, prompt_type='both')  # Centroids
-                #point_prompts, point_labels = extract_prompts_skeleton(mask, min_pixel_count=10, prompt_type='both') # Skeletons
             return point_prompts, point_labels
     
         # Retrieve point prompts

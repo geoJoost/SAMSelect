@@ -43,44 +43,85 @@ def load_scenedata(tif_path, polygon_path, patch_size):
         
         # Calculate the bounds of the entire scene
         minx, miny, maxx, maxy = polygons.total_bounds
+        
+        # Calculate the width and height of the bounding box
+        width = maxx - minx
+        height = maxy - miny
+        
+        # Check if the polygon bounds are smaller than the window size
+        if width <= window_size and height <= window_size:
+            # Calculate the centroid of the polygons
+            centroid = polygons.geometry.unary_union.centroid
+            cx, cy = centroid.x, centroid.y
 
-        # Create a uniform grid of points based on patch_size
-        x_points = np.arange(minx, maxx, window_size)
-        y_points = np.arange(miny, maxy, window_size)
+            # Create a new window centered on the centroid
+            half_window = window_size / 2
+            window = rasterio.windows.from_bounds(
+                cx - half_window, cy - half_window,
+                cx + half_window, cy + half_window,
+                transform
+            )
 
-        # Iterate through each grid point
-        for x in x_points:
-            for y in y_points:
-                window = rasterio.windows.from_bounds(
-                    x, y,
-                    x + window_size, y + window_size,
-                    transform)
+            # Read the image data within the window
+            # This method is necessary to guarantee the final patch has a shape equal to that of the mask
+            patch = src.read(window=window)
 
-                # Read the image data within the window
-                patch = src.read(window=window)
+            # Rasterize the polygon
+            rasterized = rasterize(
+                [(geom, 1) for geom in polygons.geometry],
+                out_shape=(patch_size, patch_size),
+                transform=rasterio.windows.transform(window, transform),
+                fill=0,
+                all_touched=True,  # Set to False for smaller labels
+                dtype='uint8'
+            )
 
-                # Clip the annotations to image patch
-                window_bounds = (x, y, x + window_size, y + window_size)
-                polygons_clip = gpd.clip(polygons, box(*window_bounds))
+            # Rescale [0, 1] to [0, 255] for Segment Anything
+            mask = (rasterized * 255).astype(np.uint8)
 
-                # Rasterize the clipped polygon
-                rasterized = rasterize(
-                    [(geom, 1) for geom in polygons_clip.geometry],
-                    out_shape=(patch_size, patch_size),
-                    transform=rasterio.windows.transform(window, transform), #transform,
-                    fill=0,
-                    all_touched=True,  # Set to False for smaller labels
-                    dtype='uint8'
-                )
+            # Add to list for storage
+            patches.append(patch)
+            masks.append(mask)
+        
+        # For larger extents, create a uniform grid to sample patches from
+        else:
+            # Create a uniform grid of points based on patch_size
+            x_points = np.arange(minx, maxx, window_size)
+            y_points = np.arange(miny, maxy, window_size)
 
-                # Rescale [0, 1] to [0, 255] for Segment Anything
-                mask = (rasterized * 255).astype(np.uint8)
+            # Iterate through each grid point
+            for x in x_points:
+                for y in y_points:
+                    window = rasterio.windows.from_bounds(
+                        x, y,
+                        x + window_size, y + window_size,
+                        transform)
 
-                # Check if the mask contains more than 10 pixels labeled
-                if np.sum(mask == 255) > 10:
-                    # Add to list for storage
-                    patches.append(patch)
-                    masks.append(mask)
+                    # Read the image data within the window
+                    patch = src.read(window=window)
+
+                    # Clip the annotations to image patch
+                    window_bounds = (x, y, x + window_size, y + window_size)
+                    polygons_clip = gpd.clip(polygons, box(*window_bounds))
+
+                    # Rasterize the clipped polygon
+                    rasterized = rasterize(
+                        [(geom, 1) for geom in polygons_clip.geometry],
+                        out_shape=(patch_size, patch_size),
+                        transform=rasterio.windows.transform(window, transform), #transform,
+                        fill=0,
+                        all_touched=True,  # Set to False for smaller labels
+                        dtype='uint8'
+                    )
+
+                    # Rescale [0, 1] to [0, 255] for Segment Anything
+                    mask = (rasterized * 255).astype(np.uint8)
+
+                    # Check if the mask contains more than 10 pixels labeled
+                    if np.sum(mask == 255) > 10:
+                        # Add to list for storage
+                        patches.append(patch)
+                        masks.append(mask)
 
     # Convert to tensor and save as Pytorch cache's
     patches = torch.tensor(np.array(patches), dtype=torch.float32) # (N, C, patch_size, patch_size)

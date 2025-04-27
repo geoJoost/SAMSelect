@@ -68,14 +68,14 @@ def samselect_wrapper(tif_path, polygon_path, band_list, narrow_search_bands=Non
 
 # Define Sentinel-2 spectral bands
 #l1_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"] # L1C / L1R
-#l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]       # L2A
+l2a_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12"]       # L2A
 #l2r_bands = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]             # L2R
 
 # Execute the SAMSelect wrapper
-#samselect_wrapper(tif_path='data/durban_20190424_l2a.tif' , 
-#                    polygon_path= "data/durban_20190424_qualitative_poly.shp",
-#                    band_list= l2a_bands, #=> Sentinel-2 L2A bands 
-#                    narrow_search_bands= ['B1', 'B2','B3', 'B4'], #None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
-#                    scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
-#                    equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
-#                    model_type= 'vit_b') #=> SAM encoder
+samselect_wrapper(tif_path='data/demo_durban_20190424.tif',#data/durban_20190424_l2a.tif' , 
+                    polygon_path= "data/demo_durban_20190424.shp", #"data/durban_20190424_qualitative_poly.shp",
+                    band_list= l2a_bands, #=> Sentinel-2 L2A bands 
+                    narrow_search_bands= ['B1', 'B2','B3', 'B4'], #None, #=> Manual selection of bands like: ['B3', 'B4', 'B8', 'B8A']. Naming convention needs to match 'band_list' variable
+                    scaling= 'percentile_1-99', #=> Normalization function. See dataloader.py 
+                    equation_list= ['bc'],#['bc', 'ndi', 'ssi', 'top'], #=> Visualization modules. Current: Band Composites (BC), Normalized Difference Index (NDI), Spectral Shape Index, and RSI-top10 ('top' in code) 
+                    model_type= 'vit_b') #=> SAM encoder
