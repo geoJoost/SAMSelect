@@ -12,24 +12,24 @@ def main():
     )
     parser.add_argument(
         "-b", "--bands", type=str, nargs='+', help="List of Sentinel-2 L2A bands. Default: ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']",
-        default=['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']  # Default L2A bands
+        default=['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']  # Default is Sentinel-2 L2A bands
     )
     parser.add_argument(
         "-n", "--narrow_search_bands", type=str, nargs='+', help="Manual selection of bands for narrow spectral search. Define as a list like [B1, B2, B3, B4]. Default: None for exhaustive search space.",
-        default=['B1', 'B2', 'B3', 'B4']  # Default narrow search bands
+        default=None  # Default for exhaustive spectral search
     )
     parser.add_argument(
         "-s", "--scaling", type=str, help="Normalization function to arrange DN into RGB range (0-255). Default: percentile scaling with 1-99%",
-        default='percentile_1-99'  # Default scaling
+        default='percentile_1-99'  # Default normalization 
     )
     parser.add_argument(
         "-e", "--equations", type=str, nargs='+',
         help="Visualization modules. Default: ['bc']. Options include: 'bc': Band Composites, 'ndi': Normalized Difference Indices, 'ssi': Spectral Shape Indices, 'sic': Spectral Index Composite.",
-        default=['bc']  # Default equation list
+        default=['bc', 'ndi', 'ssi', 'sic'] #['bc']  # Default visualization modules
     )
     parser.add_argument(
         "-m", "--model_type", type=str, help="SAM encoder type. Default: 'vit_b'",
-        default='vit_b'  # Default model type
+        default='vit_b'  # Default SAM encoder
     )
 
     args = parser.parse_args()

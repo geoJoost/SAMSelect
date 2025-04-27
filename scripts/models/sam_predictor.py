@@ -11,6 +11,60 @@ from scripts.utils.feature_scaling_functions import minmax_rescale, percentile_r
 from scripts.utils.metrics import calculate_metrics
 
 def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
+    """
+    Executes the Segment Anything Model (SAM) on a Sentinel-2 scene to detect marine debris.
+
+    This function loads a Sentinel-2 scene and corresponding polygon annotations, processes the data into smaller patches,
+    and applies the Segment Anything Model (SAM) to detect marine debris. It supports various visualization modules and
+    scaling methods to preprocess the image data before feeding it to the SAM model. The function evaluates the model's
+    performance using the Jaccard index (IoU) for different mask levels.
+
+    Parameters:
+    - tif_path (str): Path to the Sentinel-2 scene (TIFF format).
+    - polygon_path (str): Path to the polygon annotations for objects-of-interest (shapefile format).
+    - band_list (list of str): List of Sentinel-2 bands to be used. Default is [4, 3, 2], which corresponds to the RGB bands.
+    - scaling (str): Scaling method to normalize the image data. Options include:
+        - 'none': No scaling.
+        - 'min-max': Min-Max normalization.
+        - 'equalize': Histogram equalization.
+        - 'percentile_1-99': Percentile scaling (1% - 99%).
+        - 'percentile_2-98': Percentile scaling (2% - 98%).
+        - 'percentile_5-95': Percentile scaling (5% - 95%).
+        - 'adaptive_equalize_01': Adaptive histogram equalization (clip limit 0.01).
+        - 'adaptive_equalize_03': Adaptive histogram equalization (clip limit 0.03).
+        - 'adaptive_equalize_05': Adaptive histogram equalization (clip limit 0.05).
+        
+    - equation (str): Option for the visualization module. Default is 'bc' (Band Composite). Other options include:
+        - 'bc': Band Composite
+        - 'ndi': Normalized Difference Index
+        - 'ssi': Spectral Shape Index
+        - 'top': Spectral Index Composite
+        - 'pca': Principal Component Analysis
+        - 'fdi': Floating Debris Index
+        
+    - model_type (str): SAM encoder type. Default is 'vit_b' (ViT-Base). Other options include:
+        - 'vit_h': ViT-Huge
+        - 'vit_l': ViT-Large
+        - 'vit_b': ViT-Base
+        
+    - atm_level (str): Indicates the Sentinel-2 product level. Default is 'L2A'. Supported levels include:
+        - 'L1C': Top-of-atmosphere reflectance (Sen2Cor)
+        - 'L2A': Bottom-of-atmosphere reflectance (Sen2Cor)
+        - 'L1R': Rayleigh-corrected reflectance (ACOLITE)
+        - 'L2R': Rayleigh and aerosol-corrected reflectance (ACOLITE)
+
+    Returns:
+    - df_results (pd.DataFrame): DataFrame containing the results of the SAM model, including Jaccard index (IoU) for different mask levels.
+    - image_scaled (torch.Tensor): The scaled image tensor used for SAM prediction.
+
+    The function performs the following steps:
+    1. Loads the dataset using the `SamForMarineDebris` class.
+    2. Defines and loads the SAM model.
+    3. Processes the image data using the specified scaling method.
+    4. Feeds the processed image data to the SAM predictor.
+    5. Evaluates the model's performance using the Jaccard index (IoU) for different mask levels.
+    6. Returns the results and the scaled image tensor.
+    """
     # Load dataset for marine debris
     dataset = SamForMarineDebris(tif_path, polygon_path, band_list, equation, atm_level)
     dataloader = DataLoader(dataset, batch_size=45, shuffle=False, num_workers=0)

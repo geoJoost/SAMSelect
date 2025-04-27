@@ -9,6 +9,60 @@ from scripts.utils.get_band_idx import get_band_idx
 from scripts.utils.process_band_columns import process_band_columns
 
 def samselect(tif_path, polygon_path, band_list, narrow_search_bands=None, scaling='percentile_1-99', equation='bc', model_type='vit_b', atm_level='L2A'):
+    """
+    Executes the SAMSelect algorithm to evaluate the Segment Anything Model (SAM) on a Sentinel-2 scene for objects-of-interest detection.
+
+    This function processes a Sentinel-2 scene and corresponding polygon annotations, iterates over various band combinations,
+    and applies the SAM model to visualize and evaluate the objects-of-interest. It supports different visualization modules and scaling methods to
+    preprocess the image data before feeding it to the SAM model. The function evaluates the model's performance using the
+    Jaccard index (IoU) for different mask levels and saves the results to a CSV file.
+
+    Parameters:
+    - tif_path (str): Path to the Sentinel-2 scene (TIFF format).
+    - polygon_path (str): Path to the polygon annotations for objects-of-interest (shapefile format).
+    - band_list (list of int): List of Sentinel-2 bands to be used. Default is [4, 3, 2], which corresponds to the RGB bands.
+    - narrow_search_bands (list of int, optional): List of bands to narrow the spectral search space. Default is None.
+    - scaling (str, optional): Scaling method to normalize the image data. Default is 'percentile_1-99'. Options include:
+        - 'none': No scaling.
+        - 'min-max': Min-Max normalization.
+        - 'equalize': Histogram equalization.
+        - 'percentile_1-99': Percentile scaling (1% - 99%).
+        - 'percentile_2-98': Percentile scaling (2% - 98%).
+        - 'percentile_5-95': Percentile scaling (5% - 95%).
+        - 'adaptive_equalize_01': Adaptive histogram equalization (clip limit 0.01).
+        - 'adaptive_equalize_03': Adaptive histogram equalization (clip limit 0.03).
+        - 'adaptive_equalize_05': Adaptive histogram equalization (clip limit 0.05).
+        
+    - equation (str, optional): Option for the visualization module. Default is 'bc' (Band Composite). Other options include:
+        - 'bc': Band Composite
+        - 'ndi': Normalized Difference Index
+        - 'ssi': Spectral Shape Index
+        - 'top': Spectral Index Composite
+        - 'pca': Principal Component Analysis
+        - 'fdi': Floating Debris Index
+        
+    - model_type (str, optional): SAM encoder type. Default is 'vit_b' (ViT-Base). Other options include:
+        - 'vit_h': ViT-Huge
+        - 'vit_l': ViT-Large
+        - 'vit_b': ViT-Base
+        
+    - atm_level (str, optional): Indicates the Sentinel-2 product level. Default is 'L2A'. Supported levels include:
+        - 'L1C': Top-of-atmosphere reflectance (Sen2Cor)
+        - 'L2A': Bottom-of-atmosphere reflectance (Sen2Cor)
+        - 'L1R': Rayleigh-corrected reflectance (ACOLITE)
+        - 'L2R': Rayleigh and aerosol-corrected reflectance (ACOLITE)
+
+    Returns:
+    - None
+
+    The function performs the following steps:
+    1. Checks if the results CSV file already exists and returns early if it does.
+    2. Defines the number of bands to utilize based on the selected visualization module.
+    3. Defines the spectral search space based on the visualization module and user input.
+    4. Retrieves the atmospheric correction level of the Sentinel-2 scene.
+    5. Iterates over each possible band combination and executes the SAM model.
+    6. Processes the band columns and saves the final results to a CSV file.
+    """
     sceneid = os.path.splitext(os.path.basename(tif_path))[0]
     # Define the output file path
     output_csv = f"data/processed/{sceneid}_{equation}_{model_type}_results.csv"

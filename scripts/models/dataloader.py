@@ -11,9 +11,30 @@ import glob
 
 from scripts.models.helper_functions import load_scenedata, get_band_info
 from scripts.utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters
+
 # TODO: Documentation
 class SamForMarineDebris(Dataset):
     def __init__(self, tif_path, polygon_path, band_list=[4, 3, 2], equation='bc', atm_level='L2A'):
+        """
+        Initializes the dataset with the given Sentinel-2 scene and polygon annotations, preprocessing the data into smaller patches.
+
+        Parameters:
+        - tif_path (str): Path to the Sentinel-2 scene (TIFF format).
+        - polygon_path (str): Path to the polygon annotations for objects-of-interest (shapefile format).
+        - band_list (list of str): List of Sentinel-2 bands to be used. Default is [4, 3, 2], which corresponds to the RGB bands.
+        - equation (str): Option for the visualization module. Options include:
+            - 'bc': Band Composite (BC)
+            - 'ndi': Normalized Difference Index (NDI)
+            - 'ssi': Spectral Shape Index (SSI)
+            - 'top': Spectral Index Composite (SIC)
+            - 'pca': Principal Component Analysis (PCA)
+            - 'fdi': Floating Debris Index (FDI)
+        - atm_level (str): Indicates the Sentinel-2 product level. Default is 'L2A'. Supported levels include:
+            - 'L1C': Top-of-atmosphere reflectance (Sen2Cor)
+            - 'L2A': Bottom-of-atmosphere reflectance (Sen2Cor)
+            - 'L1R': Rayleigh-corrected reflectance (ACOLITE)
+            - 'L2R': Rayleigh and aerosol-corrected reflectance (ACOLITE)
+        """
         self.patch_size = 128
         self.band_list = band_list
         self.equation = equation
@@ -27,6 +48,7 @@ class SamForMarineDebris(Dataset):
         return len(self.patches)
 
     def __getitem__(self, idx):
+        """Retrieves a specific patch and its corresponding mask, applying the specified visualization transformation."""
         patch = self.patches[idx]
         mask = self.masks[idx]
         
@@ -34,11 +56,13 @@ class SamForMarineDebris(Dataset):
         equation = self.equation
         atm_level = self.atm_level
 
-        # Define the function for reading all spectral bands
+        # Define the various visualization functions/modules
         def scene_to_raw(patch):
+            """Returns the raw patch data without any transformations."""
             return patch
                 
-        def scene_to_rgb(patch, band_list):
+        def scene_to_rgb(patch, band_list): # Band Composites
+            """Extracts specified bands to create a false-colour composite RGB image."""
             # Extract specified bands from the tensors
             # Use idx [4, 3, 2] to retrieve true-colour image
             red_band = patch[band_list[0], :, :]
@@ -50,7 +74,8 @@ class SamForMarineDebris(Dataset):
 
             return rgb_image
             
-        def scene_to_ndi(patch, band_list):
+        def scene_to_ndi(patch, band_list): # Normalized Difference Index
+            """Calculates the Normalized Difference Index (NDI) for the specified bands and returns a grayscale image."""
             # Extract the specified bands from the tensor
             band1 = patch[band_list[0], :, :]
             band2 = patch[band_list[1], :, :]
@@ -63,7 +88,8 @@ class SamForMarineDebris(Dataset):
 
             return rgb_image
             
-        def scene_to_ssi(patch, band_list, atm_level):
+        def scene_to_ssi(patch, band_list, atm_level): # Spectral Shape Index
+            """Calculates the Spectral Shape Index (SSI) for the specified bands and returns a grayscale image."""
             # Get zero-indexed list of central wavelengths
             s2_wavelengths = get_band_info(atm_level)
 
@@ -87,7 +113,8 @@ class SamForMarineDebris(Dataset):
 
             return rgb_image
 
-        def scene_to_top(patch, band_list, atm_level):
+        def scene_to_top(patch, band_list, atm_level): # Spectral Index Composite (SIC)
+            """Creates a composite image using the top informative spectral indices, similar to BC but using spectral indices instead of bands."""
             rgb_list = []
 
             # Unpack individual tuples and create false colour composite
@@ -105,6 +132,7 @@ class SamForMarineDebris(Dataset):
             return rgb_image
         
         def scene_to_pca(patch):
+            """Performs Principal Component Analysis (PCA) on the patch and returns the first three principal components as an RGB image."""
             # Reshape the tensor into [num_pixels, num_bands]
             bands_reshaped = patch.permute(1, 2, 0).reshape(-1, patch.size(0))
 
@@ -118,6 +146,7 @@ class SamForMarineDebris(Dataset):
             return pca_result
 
         def scene_to_fdi(patch, band_list, atm_level):
+            """Calculates the Floating Debris Index (FDI) for the specified bands and returns a grayscale image."""
             # Calculate the Floating Debris Index which is similar to the SSI equation
             # Main difference is that FDI uses four bands as it includes the central wavelength for the red band
             # Therefore, we manually implement it.
@@ -166,6 +195,7 @@ class SamForMarineDebris(Dataset):
         patchid = idx + 1
 
         def retrieve_point_prompts(image):
+            """Retrieves point prompts for the image, either from a shapefile or through K-means clustering."""
             # Check if a .shp file exists for the given sceneid
             shapefile_path = glob.glob(os.path.join("data/*_pt.shp"))
             

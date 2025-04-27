@@ -10,6 +10,29 @@ import numpy as np
 import torch
 
 def load_scenedata(tif_path, polygon_path, patch_size):
+    """
+    Loads and processes a Sentinel-2 scene into smaller multispectral patches based on polygon annotations.
+
+    This function reads a Sentinel-2 scene and corresponding polygon annotations, creates smaller patches
+    of a specified size, and stores patches that contain significant polygon annotations. The patches and
+    their corresponding masks are cached for efficient reuse.
+
+    Parameters:
+    - tif_path (str): Path to the Sentinel-2 scene (TIFF format).
+    - polygon_path (str): Path to the polygon annotations (shapefile format).
+    - patch_size (int): Size of the patches in pixels (e.g., 128px for 1280m patches).
+
+    Returns:
+    - patches (torch.Tensor): Tensor of multispectral patches with shape (N, C, patch_size, patch_size).
+    - masks (torch.Tensor): Tensor of binary masks with shape (N, 1, patch_size, patch_size).
+
+    The function performs the following steps:
+    1. Checks if cached patches and masks exist. If they do, it loads and returns them.
+    2. Reads the Sentinel-2 scene and polygon annotations.
+    3. Creates a uniform grid of patches based on the polygon extent.
+    4. Extracts patches and corresponding masks, ensuring that each patch contains more than 10 pixels of annotations.
+    5. Converts the patches and masks to PyTorch tensors and saves them as cache files.
+    """
     # Define cache filename
     sceneid = os.path.splitext(os.path.basename(tif_path))[0]
     cache_dir = os.path.join("data", "cache")
@@ -133,6 +156,19 @@ def load_scenedata(tif_path, polygon_path, patch_size):
     return patches, masks
 
 def get_band_info(atm_level):
+    """
+    Retrieves the central wavelengths for the specified Sentinel-2 product level.
+
+    This function returns a list of central wavelengths corresponding to the bands of a Sentinel-2 product,
+    which is used for the Spectral Shape Index (SSI) calculation. The function supports different atmospheric
+    correction levels, including Sen2Cor (L1C, L2A) and ACOLITE (L1R, L2R).
+
+    Parameters:
+    - atm_level (str): The atmospheric correction level of the Sentinel-2 product. Must be one of 'L1C', 'L2A', 'L1R', or 'L2R'.
+
+    Returns:
+    - list: A list of central wavelengths (in nanometers) for the specified product level.
+    """
     assert atm_level in ('L1', 'L2A', 'L2R'), f"Invalid atmospheric corrected product '{atm_level}. Please insert one of the following products: Sen2Cor (L1C, L2A) or ACOLITE (L1R, L2R)"
 
     # Sentinel-2B central wavelengths (nm)

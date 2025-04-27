@@ -2,28 +2,32 @@ import numpy as np
 import torch
 from skimage import exposure
 
-def minmax_rescale(arr):
+def minmax_rescale(tensor):
     """Rescale the array values to the range [0, 255] for each individual array."""
-    # Create an empty array to store the rescaled values
-    rescaled_arr = np.zeros_like(arr, dtype=np.uint8)
+    # Create an empty tensor to store the rescaled values
+    rescaled_tensor = torch.zeros_like(tensor, dtype=torch.uint8)
 
-    # Iterate through the first dimension (assuming it represents the number of arrays)
-    for i in range(arr.shape[2]):
-        # Extract the individual array
-        single_band_arr = arr[:, :, i]
+    # Iterate through the first dimension (assuming the tensor shape is [C, H, W])
+    for i in range(tensor.shape[0]):
+        # Extract the individual band tensor
+        single_band_tensor = tensor[i, :, :]
 
-        # Calculate min and max values for the individual array
-        min_val = single_band_arr.min()
-        max_val = single_band_arr.max()
+        # Calculate the min and max values for the individual band
+        min_val = single_band_tensor.min()
+        max_val = single_band_tensor.max()
 
-        # Rescale the individual array to the range [0, 255]
-        scaled_arr = ((single_band_arr - min_val) * (1/(max_val - min_val) * 255)).to(dtype=torch.uint8)
+        # Rescale the individual band tensor using min-max scaling
+        if max_val - min_val == 0:
+            scaled_tensor = torch.zeros_like(single_band_tensor, dtype=torch.uint8)
+        else:
+            scaled_tensor = (single_band_tensor - min_val) / (max_val - min_val)
+            scaled_tensor = torch.clip(scaled_tensor, 0, 1)  # Ensure values are in the range [0, 1]
+            scaled_tensor = (scaled_tensor * 255).to(torch.uint8)  # Scale to [0, 255] and convert to uint8
 
-        # Update the rescaled_arr with the individual rescaled array
-        rescaled_arr[:, :, i] = scaled_arr
+        # Update the rescaled_tensor with the individual rescaled band
+        rescaled_tensor[i, :, :] = scaled_tensor
 
-    return rescaled_arr
-
+    return rescaled_tensor
 
 def percentile_rescale(tensor, pct_list):
     """
@@ -53,48 +57,60 @@ def percentile_rescale(tensor, pct_list):
 
     return rescaled_tensor
 
-def histogram_rescale(arr):
+def histogram_rescale(tensor):
     """
     Rescale the array values to the range [0, 255] for each individual array using histogram equalization.
     """
-    # Create an empty array to store the rescaled values
-    rescaled_arr = np.zeros_like(arr, dtype=np.uint8)
+    # Create an empty tensor to store the rescaled values
+    rescaled_tensor = torch.zeros_like(tensor, dtype=torch.uint8)
 
-    # Iterate through the first dimension
-    for i in range(arr.shape[2]):
-        # Extract the individual array
-        single_band_arr = arr[:, :, i]
+    # Iterate through the first dimension (assuming the tensor shape is [C, H, W])
+    for i in range(tensor.shape[0]):
+        # Extract the individual band tensor
+        single_band_tensor = tensor[i, :, :]
+
+        # Convert the tensor to a NumPy array for histogram equalization
+        single_band_arr = single_band_tensor.cpu().numpy()
 
         # Apply histogram equalization to the individual array
-        equalized_arr = exposure.equalize_hist(np.array(single_band_arr))
+        equalized_arr = exposure.equalize_hist(single_band_arr)
 
         # Scale the values to the range [0, 255] and convert to uint8
         scaled_arr = (equalized_arr * 255).astype(np.uint8)
 
-        # Update the rescaled_arr with the individual rescaled array
-        rescaled_arr[:, :, i] = scaled_arr
+        # Convert the scaled array back to a tensor
+        scaled_tensor = torch.from_numpy(scaled_arr)
 
-    return rescaled_arr
+        # Update the rescaled_tensor with the individual rescaled band
+        rescaled_tensor[i, :, :] = scaled_tensor
 
-def adaptive_histogram_rescale(arr, clip_limit=0.03):
+    return rescaled_tensor
+
+def adaptive_histogram_rescale(tensor, clip_limit=0.03):
     """
     Rescale the array values to the range [0, 255] for each individual array using adaptive histogram equalization.
     """
-    # Create an empty array to store the rescaled values
-    rescaled_arr = np.zeros_like(arr, dtype=np.uint8)
+    # Create an empty tensor to store the rescaled values
+    rescaled_tensor = torch.zeros_like(tensor, dtype=torch.uint8)
 
-    # Iterate through the first dimension
-    for i in range(arr.shape[2]):
-        # Extract the individual array
-        single_band_arr = arr[:, :, i]
+    # Iterate through the first dimension (assuming the tensor shape is [C, H, W])
+    for i in range(tensor.shape[0]):
+        # Extract the individual band tensor
+        single_band_tensor = tensor[i, :, :]
+
+        # Convert the tensor to a NumPy array for adaptive histogram equalization
+        single_band_arr = single_band_tensor.cpu().numpy()
 
         # Apply adaptive histogram equalization to the individual array
-        adaptive_equalized_arr = exposure.equalize_adapthist(np.array(single_band_arr), clip_limit=clip_limit)
+        adaptive_equalized_arr = exposure.equalize_adapthist(single_band_arr, clip_limit=clip_limit)
 
         # Scale the values to the range [0, 255] and convert to uint8
         scaled_arr = (adaptive_equalized_arr * 255).astype(np.uint8)
 
-        # Update the rescaled_arr with the individual rescaled array
-        rescaled_arr[:, :, i] = scaled_arr
+        # Convert the scaled array back to a tensor
+        scaled_tensor = torch.from_numpy(scaled_arr)
 
-    return rescaled_arr
+        # Update the rescaled_tensor with the individual rescaled band
+        rescaled_tensor[i, :, :] = scaled_tensor
+
+    return rescaled_tensor
