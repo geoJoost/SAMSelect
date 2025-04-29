@@ -2,13 +2,10 @@ import os
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-from PIL import Image
-import rasterio
-import numpy as np
-import re
 from sklearn.decomposition import PCA
 import glob
 
+# Custom modules
 from scripts.models.helper_functions import load_scenedata, get_band_info
 from scripts.utils.point_sampling_methods import extract_manual_prompts, prompts_from_spectralclusters
 

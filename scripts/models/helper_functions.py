@@ -1,11 +1,9 @@
 import os
-import glob
 import pandas as pd
 import geopandas as gpd
 import rasterio
 from rasterio.features import rasterize
 from shapely.geometry import box
-from PIL import Image
 import numpy as np
 import torch
 
@@ -237,7 +235,7 @@ def select_top_bands(sceneid, model_type, equation_list, top_number=10):
 
         # Melt the dataset to get a single row for each unique Jaccard level
         df_melt = pd.melt(df_stats, id_vars='band_combination', value_vars=['jaccard_lvl1', 'jaccard_lvl2', 'jaccard_lvl3'], var_name='mask_level', value_name='miou')
-        df_top = df_melt.nlargest(top_number, 'miou')['band_combination'] # Extract top-5 best performing bands on mIoU
+        df_top = df_melt.nlargest(top_number, 'miou')['band_combination'] # Extract top-10 best performing bands on mIoU
 
         # Concatenate results
         top_combinations = pd.concat([top_combinations, df_top], axis=0)

@@ -117,6 +117,8 @@ def prompts_from_spectralclusters(image, label, num_clusters=10, prompt_type="bo
     Returns:
     - List of tuples with coordinates of pixels closest to cluster centroids.
     """
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn.cluster._kmeans")
     
     label = label.squeeze().numpy()
     debris_coords = np.argwhere(label == 255) # XY locations within annotations
