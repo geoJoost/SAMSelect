@@ -10,7 +10,7 @@ from scripts.models.dataloader import SamForMarineDebris
 from scripts.utils.feature_scaling_functions import minmax_rescale, percentile_rescale, histogram_rescale, adaptive_histogram_rescale
 from scripts.utils.metrics import calculate_metrics
 
-def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
+def execute_SAM(tif_path, polygon_path, bands_idx, scaling, equation='bc', model_type='vit_b', atm_level='L2A'):
     """
     Executes the Segment Anything Model (SAM) on a Sentinel-2 scene to detect marine debris.
 
@@ -22,8 +22,8 @@ def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model
     Parameters:
     - tif_path (str): Path to the Sentinel-2 scene (TIFF format).
     - polygon_path (str): Path to the polygon annotations for objects-of-interest (shapefile format).
-    - band_list (list of str): List of Sentinel-2 bands to be used. Default is [4, 3, 2], which corresponds to the RGB bands.
-    - scaling (str): Scaling method to normalize the image data. Options include:
+    - bands_idx (list of integers): List of Sentinel-2 bands idx's to be used.
+    - scaling (str): Scaling method to normalize the image data from DN into RGB range (0-255). Options include:
         - 'none': No scaling.
         - 'min-max': Min-Max normalization.
         - 'equalize': Histogram equalization.
@@ -66,7 +66,7 @@ def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model
     6. Returns the results and the scaled image tensor.
     """
     # Load dataset for marine debris
-    dataset = SamForMarineDebris(tif_path, polygon_path, band_list, equation, atm_level)
+    dataset = SamForMarineDebris(tif_path, polygon_path, bands_idx, equation, atm_level)
     dataloader = DataLoader(dataset, batch_size=45, shuffle=False, num_workers=0)
 
     # Define Segment Anything Model
@@ -143,7 +143,7 @@ def execute_SAM(tif_path, polygon_path, band_list, scaling, equation='bc', model
 
     # Append aggregated results to the list
     results = {
-        **{f'band_{i + 1}': band_list[i] for i in range(len(band_list))}, # Number of bands is varied, with three in BC & SSI, but only two for NDI
+        **{f'band_{i + 1}': bands_idx[i] for i in range(len(bands_idx))}, # Number of bands is varied, with three in BC & SSI, but only two for NDI
         'scaler': scaling_methods[scaling][0],
         'model': model_type,
         'jaccard_lvl1': calculate_metrics(batch_label, pred_lvl1)['jaccard'], # IoU for mask-level 1 from SAM

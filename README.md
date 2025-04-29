@@ -27,7 +27,7 @@ conda install pytorch=2.4.1 torchvision=0.17.2 torchaudio=2.2.2 pytorch-cuda=12.
 pip install -e .
 
 # Run samselect on the demo data (available from Google Drive at https://drive.google.com/drive/folders/1UBy1mnVWgmaF_1nKgGyrYtS_L52mACIy?usp=sharing), store into SAMSelect/data/
-samselect --image data/data/demo_durban_20190424.tif --annotations data/data/demo_durban_20190424.shp
+samselect --image data/demo_durban_20190424.tif --annotations data/demo_durban_20190424.shp
 
 # please check for more instructions on usage
 samselect --help 

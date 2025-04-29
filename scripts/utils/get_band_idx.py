@@ -3,8 +3,8 @@ def get_band_idx(band_list, band_combination, equation):
     if equation ==  'top':
         # Since top-5 has double-nested values, we have to unpack the tuples twice
         # Like (('B2', 'B8'), ('B3', 'B8'), ('B2', 'B7')) => [[2, 8], [3, 8], [2, 7]]
-        bands_idx = [[band_list.index(band) + 1 for band in bands] for bands in band_combination]
+        bands_idx = [[band_list.index(band) for band in bands] for bands in band_combination]
     else:
-        bands_idx = [band_list.index(band) + 1 for band in band_combination]
+        bands_idx = [band_list.index(band) for band in band_combination]
 
     return bands_idx
