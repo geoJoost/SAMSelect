@@ -1,7 +1,10 @@
 # SAMSelect: An Automated Spectral Index Search using Segment Anything
 [[`paper`](google.com)]
-[[`demo`](https://github.com/geoJoost/SAMSelect/blob/main/samselect/samselect_demo.ipynb)]
+[[`demo notebook`](https://github.com/geoJoost/SAMSelect/blob/main/samselect/samselect_demo.ipynb)]
 [[`dataset`](https://drive.google.com/drive/folders/1UBy1mnVWgmaF_1nKgGyrYtS_L52mACIy?usp=sharing)]
+[[`Google Earth Engine Interactive App`](https://code.earthengine.google.com/014eec03b2ada8cf84ae9ae043b34604?hideCode=true)]
+
+
 
 > SAMSelect discovers three-channel visualizations from multispectral imagery where pre-specified objects are most visible. It builds on Meta's [Segment Anything Model (SAM)](https://segment-anything.com/) to rank band combinations based on segmentation accuracy in the 3-channel visualization. 
 
