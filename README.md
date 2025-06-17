@@ -31,9 +31,6 @@ pip install -e .
 # Run samselect on the demo data (see link above), store into SAMSelect/data/
 samselect --image data/demo_durban_20190424.tif --annotations data/demo_durban_20190424.shp
 
-# Please check for more instructions on usage
-samselect --help
-
 # Or try out the demo in /samselect/samselect_demo.ipynb
 ```
 
