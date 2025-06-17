@@ -1,5 +1,5 @@
 # SAMSelect: An Automated Spectral Index Search using Segment Anything
-[[`paper`](google.com)]
+[[`paper`](https://ieeexplore.ieee.org/document/11028606)]
 [[`demo notebook`](https://github.com/geoJoost/SAMSelect/blob/main/samselect/samselect_demo.ipynb)]
 [[`dataset`](https://drive.google.com/drive/folders/1UBy1mnVWgmaF_1nKgGyrYtS_L52mACIy?usp=sharing)]
 [[`Google Earth Engine Interactive App`](https://code.earthengine.google.com/014eec03b2ada8cf84ae9ae043b34604?hideCode=true)]
